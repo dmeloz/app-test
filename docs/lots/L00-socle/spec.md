@@ -1,10 +1,10 @@
 # Lot L00 — Socle technique du monorepo
 
-- **Statut** : PROPOSÉ
-- **Validé par / le** : _à compléter par le porteur_          ← requis avant toute implémentation
+- **Statut** : VALIDÉ
+- **Validé par / le** : le porteur du projet (« Je valide tout ») / 2026-09-24 — inclut l'accord sur les dépendances de production listées § 8
 - **Critique** : non (aucune logique métier, aucune donnée, aucun paiement) — audit `auditor-opus` quand même
 - **ADR liés** : 0001, 0002, 0003 (préparation seulement), 0007 (préparation), 0010, 0013
-- **Branche** : `lot/L00-socle` (créée depuis `claude/opus-sonnet-workflow-gxnvua` tant que `main` ne contient pas le cadrage)
+- **Branche** : `claude/opus-sonnet-workflow-gxnvua` (branche de développement autorisée pour cette session)
 
 ## 1. Besoin et contexte
 
