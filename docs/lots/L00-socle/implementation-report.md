@@ -170,13 +170,14 @@ projet.
 
 ## Fichiers modifiés / créés (`git diff --stat` — hors `docs/**` préexistant, non touché)
 
-94 fichiers créés, 7652 insertions, 0 suppression (`git diff de407dc..HEAD --stat -- . ':!docs'`).
+État au commit `bfe18d0` : **138 fichiers, 9525 insertions, 17 suppressions** (`git diff de407dc..bfe18d0 --stat -- . ':!docs'`,
+rejoué par Opus le 2026-09-24 ; commande figée sur un commit pour rester reproductible — L-c, audit 4).
 Détail complet reproductible par la commande ci-dessus. Résumé par zone :
 
 - Racine : `package.json`, `pnpm-workspace.yaml`, `pnpm-lock.yaml` (commité), `turbo.json`,
   `tsconfig.base.json`, `.nvmrc`, `.editorconfig`, `.gitignore` (étendu), `.prettierrc.json`,
   `.prettierignore`, `.dockerignore`, `eslint.config.mjs`, `README.md`, `.github/workflows/ci.yml`.
-- `apps/api/**` : squelette NestJS + Fastify complet (voir périmètre), 5 fichiers de test.
+- `apps/api/**` : squelette NestJS + Fastify complet (voir périmètre), 8 fichiers de test (`git ls-files 'apps/api/**/*.test.ts'`).
 - `apps/storefront/**`, `apps/backoffice/**` : Next.js App Router, pages `[locale]` FR/EN, tests.
 - `packages/domain/**` : module `money` + tests (AC-L00-07).
 - `packages/{contracts,db,ui,i18n,config,testing}/**` : squelettes vides configurés.
@@ -319,7 +320,7 @@ Cached:    0 cached, 11 total
 ```
 
 EXIT=0. Total : **48 tests unitaires/intégration** (33 api + 9 domain + 3 storefront + 3
-backoffice), aucun avertissement ESM/CJS dans la sortie. `@app/contracts`, `@app/db`, `@app/i18n`,
+backoffice), aucun avertissement ESM/CJS dans la sortie. `@app/config`, `@app/contracts`, `@app/db`, `@app/i18n`,
 `@app/testing`, `@app/ui` : « No test files found, exiting with code 0 » (paquets volontairement
 vides au L00, `passWithNoTests: true`) — comptés dans les 11 tâches `turbo`, mais sans test propre.
 

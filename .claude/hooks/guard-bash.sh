@@ -41,15 +41,24 @@ shopt -s nocasematch
 [[ "$cmd" =~ rm[[:space:]]+(-[a-z]*r[a-z]*f|-[a-z]*f[a-z]*r)[a-z]*[[:space:]]+(/|~|\$HOME|\.|\*)([[:space:]]|$) ]] && block "suppression récursive dangereuse"
 
 # Secrets
-# Fichiers .env : toute variante (.env, .env.local, .env.dev, .env.backup…) sauf les modèles sans secret.
-# Suffixes multiples acceptés (.env.production.local, .env.local.bak) ; terminateurs incluant | ; & < > ) ;
-# redirection d'entrée (<.env) couverte. Seuls les modèles terminaux exacts sont autorisés.
-env_re='(cat|less|more|head|tail|grep|sed|awk|cp|mv|scp|curl|base64|xxd|strings|source)[[:space:]<]([^;&|]*[/[:space:]"'"'"'=<])?\.env((\.[A-Za-z0-9_-]+)*)([[:space:]"'"'"'<>|;&)]|$)'
-if [[ "$cmd" =~ $env_re ]]; then
-  case "${BASH_REMATCH[3]}" in
-    .example|.sample|.template) ;;
-    *) block "lecture ou copie d'un fichier .env" ;;
-  esac
+# Fichiers .env : toute variante (.env, .env.local, .env.production.local, .env.local.bak, globs .env*)
+# sauf les modèles terminaux exacts (.env.example, .env.sample, .env.template). CHAQUE mention est examinée
+# (pas seulement la première) dès qu'un verbe de lecture/copie ou un « source »/« . » est présent.
+# Limite connue : liste de verbes = défense en profondeur, pas une garantie (voir .claude/rules/security.md).
+if ! CMD="$cmd" python3 - <<'PY'
+import os, re, sys
+cmd = os.environ["CMD"]
+verbs = r"(cat|less|more|head|tail|grep|rg|sed|awk|cp|mv|scp|rsync|curl|base64|xxd|od|strings|source|tac|nl|diff|cmp|vi|vim|nano|python3?|node)"
+reader = re.search(r"(^|[\s;&|(`$])" + verbs + r"(\s|<)", cmd, re.I) or re.search(r"(^|[;&|]\s*)\.\s+\S", cmd)
+if not reader:
+    sys.exit(0)
+for m in re.finditer(r"(?:^|[/\s\"'=<(])\.env((?:\.[\w-]+)*)(?=[\s\"'<>|;&)*?\[]|$)", cmd, re.I):
+    if m.group(1).lower() not in (".example", ".sample", ".template"):
+        sys.exit(1)
+sys.exit(0)
+PY
+then
+  block "lecture ou copie d'un fichier .env"
 fi
 [[ "$cmd" =~ (^|[[:space:]])(printenv|env)([[:space:]]|$) ]] && [[ ! "$cmd" =~ env[[:space:]]+[A-Z_]+= ]] && block "affichage de l'environnement (secrets possibles)"
 key_re='(cat|less|more|head|tail|grep|sed|awk|cp|mv|scp|curl|base64|xxd|strings|openssl)[[:space:]][^|;&]*(id_rsa|id_ed25519|\.pem|\.p12|\.pfx|credentials\.json|service-account)'
