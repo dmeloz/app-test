@@ -13,12 +13,21 @@ block() {
 trap 'exit 2' ERR
 
 input="$(cat)"
-# Extrait la commande et retire le corps des heredocs qui ne font qu'écrire un fichier (doc, message de
-# commit), pour éviter les faux positifs quand un document mentionne « .env ». Le corps est CONSERVÉ
-# (donc analysé) quand le heredoc alimente un interpréteur (bash, sh, python3, node…) — L-d, audit 5.
-# « <<< » (here-string) et les décalages arithmétiques « $(( a<<b )) » ne sont pas des heredocs.
-if ! cmd="$(printf '%s' "$input" | python3 -c '
+# N16 (audit 6) : les expressions régulières ont un coût quadratique ; une entrée démesurée pourrait
+# dépasser le délai du hook (échec ouvert). On refuse d'emblée au-delà de 64 Ko.
+(( ${#input} > 65536 )) && block "commande trop longue pour être analysée (> 64 Ko)"
+
+# Extraction de la commande (N14 : échec fermé).
+#   mode « raw »      : commande brute, utilisée par TOUTES les règles (N15, audit 6) ;
+#   mode « stripped » : corps des heredocs qui ne font qu'écrire un fichier retirés, utilisé UNIQUEMENT
+#                       par la règle des fichiers de secrets (évite les faux positifs quand un document
+#                       mentionne ces fichiers). En cas de doute (marqueur entre guillemets, dans un
+#                       commentaire, arithmétique, délimiteur suivi d'autre chose qu'un métacaractère,
+#                       interpréteur où que ce soit sur la ligne), le corps est CONSERVÉ.
+extract() {
+  printf '%s' "$input" | python3 -c '
 import json, re, sys
+mode = sys.argv[1]
 try:
     data = json.load(sys.stdin)
 except Exception:
@@ -29,8 +38,17 @@ if cmd is None:
     cmd = ""
 if not isinstance(cmd, str):
     cmd = json.dumps(cmd)
-interp = re.compile(r"(^|[\s;&|(])(bash|sh|zsh|dash|ksh|python3?|node|perl|ruby|php|ssh|eval|source|xargs)\b")
-heredoc = re.compile(r"(?<!<)<<(?!<)-?\s*([\x27\x22]?)([A-Za-z_][A-Za-z0-9_]*)\1")
+if mode == "raw":
+    sys.stdout.buffer.write(cmd.encode("utf-8", "replace"))
+    sys.exit(0)
+interp = re.compile(r"(?<![\w.-])(bash|sh|zsh|dash|ksh|python3?|node|perl|ruby|php|ssh|eval|source|xargs|env)\b")
+heredoc = re.compile(r"(?<!<)<<(?!<)-?\s*([\x27\x22]?)([A-Za-z_][A-Za-z0-9_]*)\1(?=[\s;&|<>)]|$)")
+def real_heredoc(prefix):
+    if prefix.count("\x27") % 2 or prefix.count("\x22") % 2:
+        return False
+    if re.search(r"(^|\s)#", prefix) or "((" in prefix:
+        return False
+    return True
 out, term, keep = [], None, False
 for line in cmd.split("\n"):
     if term is not None:
@@ -42,11 +60,16 @@ for line in cmd.split("\n"):
         continue
     out.append(line)
     m = heredoc.search(line)
-    if m and "$((" not in line[: m.start()]:
+    if m and real_heredoc(line[: m.start()]):
         term = m.group(2)
-        keep = bool(interp.search(line[: m.start()]))
+        keep = bool(interp.search(line))
 sys.stdout.buffer.write("\n".join(out).encode("utf-8", "replace"))
-')"; then
+' "$1"
+}
+if ! cmd="$(extract raw)"; then
+  block "analyse de la commande impossible (entrée malformée)"
+fi
+if ! env_cmd="$(extract stripped)"; then
   block "analyse de la commande impossible (entrée malformée)"
 fi
 
@@ -67,7 +90,7 @@ shopt -s nocasematch
 # sauf les modèles terminaux exacts (.env.example, .env.sample, .env.template). CHAQUE mention est examinée
 # (pas seulement la première) dès qu'un verbe de lecture/copie ou un « source »/« . » est présent.
 # Limite connue : liste de verbes = défense en profondeur, pas une garantie (voir .claude/rules/security.md).
-if ! CMD="$cmd" python3 - <<'PY'
+if ! CMD="$env_cmd" python3 - <<'PY'
 import os, re, sys
 cmd = os.environ["CMD"]
 verbs = r"(cat|less|more|head|tail|grep|rg|sed|awk|cp|mv|scp|rsync|curl|base64|xxd|od|strings|source|tac|nl|diff|cmp|vi|vim|nano|python3?|node)"

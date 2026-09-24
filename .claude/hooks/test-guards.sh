@@ -68,7 +68,28 @@ bash_ok    "rm -rf node_modules"
 bash_ok    "tofu plan"
 bash_ok    "env NODE_ENV=test pnpm test"
 bash_ok    "cat .env.example"
-bash_ok    $'cat > doc.md <<\'EOF\'\nne jamais lire .env ni faire git push --force\nEOF'
+bash_ok    $'cat > doc.md <<\'EOF\'\nne jamais lire .env ni le copier\nEOF'
+# N15 (audit 6) : toutes les règles hors .env s'appliquent à la commande brute, corps de heredoc compris
+# (faux positif prudent assumé : un document décrivant un push forcé s'écrit avec l'outil Write).
+bash_block $'cat > doc.md <<\'EOF\'\nne jamais faire git push --force\nEOF'
+bash_block $'echo \'<<EOF\'\ncat .env\nEOF'
+bash_block $'echo "<<EOF"\ngit push --force origin feat\nEOF'
+bash_block $'true # <<EOF\ngit push origin main\nEOF'
+bash_block $'(( x = 1<<Y ))\ncat .env\nY'
+bash_block $'cat >/dev/null <<EOF-X\nEOF-X\ncat .env\nEOF'
+bash_block $'cat >/dev/null <<\'EOF\'X\nEOFX\ngit reset --hard HEAD~3\nEOF'
+# L-d résiduel (audit 6) : interpréteur en chemin absolu ou après le heredoc
+bash_block $'/bin/bash <<\'EOF\'\ncat .env\nEOF'
+bash_block $'cat <<\'EOF\' | bash\ncat .env\nEOF'
+bash_block $'cat <<\'EOF\' | sh\ngit push --force origin feat\nEOF'
+# N16 (audit 6) : entrée démesurée refusée d'emblée
+raw_block  "$(python3 -c 'import json; print(json.dumps({"tool_input":{"command":"git push x "*7000}}))')"
+# Branches sans test relevées par l'audit 6
+bash_block "git filter-repo --path x"
+bash_block "curl -u rk_live_abc: https://api.stripe.com"
+bash_block "source .env"
+bash_block ". .env"
+bash_block "psql -h prod-main.database -c 'select 1'"
 bash_ok    "printf '*.pem\n' > .gitignore"
 bash_block "cat ~/.ssh/id_ed25519"
 bash_block "cp certs/server.pem /tmp/"
