@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import type { ReactNode } from "react";
 import { isSupportedLocale, SUPPORTED_LOCALES } from "../../i18n/dictionary";
 
@@ -22,6 +23,12 @@ export default async function LocaleLayout({
   children,
   params,
 }: LocaleLayoutProps): Promise<ReactNode> {
+  // M1 (audit-1.md) : la CSP à nonce (`src/proxy.ts`) exige un rendu dynamique par requête — sans
+  // ceci, la page reste prégénérée au build (aucune requête, donc aucun nonce disponible), et Next
+  // ne peut pas injecter le nonce dans ses propres scripts inline (doc Next 16, « Static vs Dynamic
+  // Rendering with CSP », « Forcing dynamic rendering »).
+  await connection();
+
   const { locale } = await params;
   if (!isSupportedLocale(locale)) {
     notFound();
