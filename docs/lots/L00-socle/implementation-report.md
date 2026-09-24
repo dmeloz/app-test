@@ -34,19 +34,45 @@
   - `4367eb9` — Design : référence visuelle R1 (dashboard) analysée et reliée à la maquette P01 (hors périmètre L00)
   - `e888cea` — audit-2 : corrige N4 (logs à liste d'autorisation), N5 (CLI gitleaks épinglée, historique complet), N6 (arrêt de pnpm dev), N8 (turbo du lockfile dans le Dockerfile)
   - `b0a7db9` — audit-2 : corrige N9 (node:module/type import interdits en domain), N10 (vitest.config.mts), L5 (images épinglées par digest)
-  - (commit de cette mise à jour du rapport à suivre)
+  - `15309bb` — audit-2 : corrige R1 — rapport d'implémentation à jour (statuts AC, corrections audit 2, reste à confirmer)
+  - `3e491eb` — L00 : audit 3 (CHANGES_REQUIRED, 0 HIGH) et correction de la régression N11 du garde-fou `.env` (**faite par le fil principal Opus**, hors périmètre de cet agent)
+  - `a4abeb5` — L00 audit-3 : L-a (reporter Playwright HTML), L-b (commentaire et titre 404)
+  - *(commit de cette mise à jour du rapport, R1-bis, à suivre)*
+
+**Note d'en-tête (audit-3, R1-bis)** : les constats **N7 et N11** de la règle de garde-fou `.env`
+(`.claude/hooks/guard-bash.sh`) ont été traités **par le fil principal Opus**, dans son périmètre
+propre (`.claude/`) — cet agent (`developer-sonnet`) ne les a pas corrigés et ne les revendique pas.
+Le présent rapport se contente de **constater** le résultat (45/45 sur `test-guards.sh`, rejoué de
+façon reproductible ci-dessous) après ce correctif.
 
 **Ce rapport a été corrigé après l'audit 1** (`docs/lots/L00-socle/audit-1.md`, verdict
 `CHANGES_REQUIRED`). Les passages ci-dessous marqués « (état à l'audit 1, corrigé) » décrivaient un
 comportement qui s'est révélé faux une fois rejoué sur clone propre — voir la section
-« Corrections audit 1 » en fin de document pour le détail commit → preuve.
+« Corrections audit 1 » en fin de document pour le détail commit → preuve. **Ces chiffres sont
+historiques** : ils décrivent l'état du dépôt à cette date, pas l'état actuel — voir « Commandes
+exécutées et résultats réels » pour les chiffres actuels, tous rejoués sur clone propre pour cette
+révision (R1-bis, audit 3).
 
 **Puis corrigé une seconde fois après l'audit 2 (contre-audit)** (`docs/lots/L00-socle/audit-2.md`,
 verdict `CHANGES_REQUIRED` : 2 HIGH — N1, H4 — et 4 MEDIUM — M1, N4, N5, R1). Voir la section
 « Corrections audit 2 » en fin de document pour le détail commit → preuve de chaque constat (N1,
-H4, M1, N4, N5, N6, N7, N8, N9, N10, L5). **Cette mise à jour du rapport est elle-même la
-correction de R1** (ex-H7 : rapport d'implémentation contradictoire ou périmé sur plusieurs points
-— voir le détail des corrections apportées ci-dessous et la section « Écarts »).
+H4, M1, N4, N5, N6, N7, N8, N9, N10, L5). **Chiffres historiques également** (voir remarque
+ci-dessus) : la contre-épreuve réelle et actuelle est dans « Commandes exécutées et résultats
+réels ».
+
+**Puis corrigé une troisième fois après l'audit 3 (contre-audit)** (`docs/lots/L00-socle/audit-3.md`,
+verdict `CHANGES_REQUIRED` : 0 BLOCKER, 0 HIGH ; 2 MEDIUM ciblés — **N11** (corrigé par Opus, hors
+périmètre de cet agent) et **R1-bis**, ce présent document). L'audit 3 constatait que ce rapport
+citait des chiffres faux ou périmés présentés comme actuels : « 31 cas » de `test-guards.sh` (valeur
+réelle rejouée par l'audit : 36, puis 45 après le correctif N11), un typecheck annoncé sur « 11 »
+paquets/apps (en réalité 10), un extrait de build montrant `○ /_not-found` (rendu statique — périmé
+depuis le correctif M1 de l'audit 2, qui l'a rendu dynamique, `ƒ /_not-found`), un extrait de logs
+montrant les champs `host`/`remoteAddress` présenté comme actuel alors que le correctif N4 de
+l'audit 2 les a retirés des logs, une contradiction sur `--frozen-lockfile` (annoncé non rejoué tel
+quel), et des lignes de `ci.yml` citées sans revérification. **Cette révision (R1-bis) corrige tous
+ces points** : voir « Corrections audit 3 » en fin de document et la section « Commandes exécutées
+et résultats réels », entièrement rejouée sur un clone propre distinct de ce dépôt de travail
+(`git clone /home/user/app-test`, puis `git checkout a4abeb5`), le 2026-09-24.
 
 ## Périmètre reformulé
 
@@ -168,28 +194,39 @@ code de ce lot.
 
 ## Commandes exécutées et résultats réels
 
-Toutes les commandes ci-dessous ont été exécutées avec Node 24.21.0 en tête de `PATH`
-(`export PATH="/opt/nvm/versions/node/v24.21.0/bin:$PATH"`) et pnpm 12.6.0.
+**R1-bis (audit-3.md) : toute cette section a été rejouée le 2026-09-24 sur un CLONE PROPRE et
+distinct de ce dépôt de travail** — `git clone /home/user/app-test <scratchpad>/r1bis && git -C
+<scratchpad>/r1bis checkout a4abeb5` (commit issu de la correction L-a/L-b de cet audit) — avec Node
+24.21.0 (`. ~/.nvm/nvm.sh && nvm use 24.21.0`) et pnpm 12.6.0. Le clone a été supprimé après
+vérification (`rm -rf <scratchpad>/r1bis`). Chaque extrait ci-dessous est réel et reproductible par
+quiconque exécute la même séquence sur le même commit ; aucun chiffre n'est recopié d'une passe
+antérieure sans avoir été rejoué.
 
 ### `pnpm install --frozen-lockfile` (AC-L00-01)
 
 ```text
-$ pnpm install
+$ pnpm install --frozen-lockfile
 Scope: all 11 workspace projects
-✓ Lockfile passes supply-chain policies
-Already up to date
-Done in 2ms using pnpm v12.6.0
+✓ Lockfile passes supply-chain policies (verified 3h ago)
+Lockfile is up to date, resolution step is skipped
+Packages: +428
+Packages are hard linked from the content-addressable store to the virtual store.
+
+devDependencies:
++ @eslint/js 10.0.1
++ @next/eslint-plugin-next 16.3.6
++ @playwright/test 1.63.0
+...
++ turbo 2.11.3
++ typescript 6.0.3
++ typescript-eslint 8.70.1
+
+Done in 594ms using pnpm v12.6.0
 ```
 
-(Premier `pnpm install` réel : `Packages: +466`, résolution complète, `pnpm-lock.yaml` généré et
-commité. Un blocage initial `ERR_PNPM_IGNORED_BUILDS` — pnpm 12 bloque par défaut les scripts
-postinstall de `@swc/core`, `esbuild`, `unrs-resolver` — a été résolu en ajoutant `allowBuilds` dans
-`pnpm-workspace.yaml`, comme le propose pnpm lui-même, et confirmé via `pnpm approve-builds --all`.)
-
-`--frozen-lockfile` n'a pas été relancé tel quel après le dernier ajustement du lockfile faute de
-tour disponible en fin de session ; le dernier `pnpm install` (sans l'option) a confirmé
-« Already up to date » avec le lockfile actuel, ce qui garantit la cohérence. **À revérifier en CI**
-(la CI l'exécute explicitement).
+EXIT=0. **Corrige la contradiction relevée par l'audit 3** : la version précédente de ce rapport
+affirmait que `--frozen-lockfile` n'avait « pas été relancé tel quel » — c'est désormais fait, sur
+clone propre, avec succès.
 
 ### `pnpm format:check` (AC-L00-02)
 
@@ -225,46 +262,139 @@ aucune des deux règles). `pnpm test:lint-boundaries` est désormais une étape 
 
 ### `pnpm typecheck` (AC-L00-02)
 
+**Corrige le constat R1-bis (audit-3.md)** : une version précédente de ce rapport annonçait
+« 11 successful, 11 total ». **C'est faux** : il y a **10** paquets/apps de type au lot L00 (pas de
+build préalable requis pour `@app/domain`, qui ne fait pas partie du graphe de dépendances de build
+des autres au sens de `turbo`). Rejoué sur clone propre :
+
 ```text
- Tasks:    11 successful, 11 total
-Cached:    8 cached, 11 total
-  Time:    3.151s
+$ pnpm typecheck
+• Packages in scope: @app/config, @app/contracts, @app/db, @app/domain, @app/i18n, @app/testing, @app/ui, api, backoffice, storefront
+• Running typecheck in 10 packages
+@app/contracts:typecheck: $ tsc -p tsconfig.json --noEmit
+@app/config:typecheck: $ tsc -p tsconfig.json --noEmit
+@app/i18n:typecheck: $ tsc -p tsconfig.json --noEmit
+@app/ui:typecheck: $ tsc -p tsconfig.json --noEmit
+@app/domain:typecheck: $ tsc -p tsconfig.json --noEmit
+api:typecheck: $ tsc -p tsconfig.json --noEmit
+@app/db:typecheck: $ tsc -p tsconfig.json --noEmit
+storefront:typecheck: $ tsc -p tsconfig.json --noEmit
+backoffice:typecheck: $ tsc -p tsconfig.json --noEmit
+@app/testing:typecheck: $ tsc -p tsconfig.json --noEmit
+
+ Tasks:    10 successful, 10 total
+Cached:    0 cached, 10 total
+  Time:    6.267s
 ```
 
-(les 11 paquets/apps : `@app/config`, `@app/contracts`, `@app/db`, `@app/domain`, `@app/i18n`,
-`@app/testing`, `@app/ui`, `api`, `backoffice`, `storefront`, + build de `@app/domain` requis par
-les autres.)
+(les 10 paquets/apps : `@app/config`, `@app/contracts`, `@app/db`, `@app/domain`, `@app/i18n`,
+`@app/testing`, `@app/ui`, `api`, `backoffice`, `storefront`.)
 
-### `pnpm test` (AC-L00-02, AC-L00-07)
+### `pnpm test` (AC-L00-02, AC-L00-07) — sans build préalable
 
-**Rejoué réellement sur clone propre (`git clone /home/user/app-test`), sans build préalable, le
-2026-09-24, commit `b0a7db9`** (N1, audit-2.md : ce point précis était KO à l'audit 2 avant
-correctif — `turbo.json` ne surchargeait pas la bonne clé de paquet et `dist/` était absent) :
+Rejoué sur le même clone propre, immédiatement après `pnpm install --frozen-lockfile` (aucun
+`pnpm build` avant) :
 
 ```text
-$ pnpm install --frozen-lockfile && pnpm test
-...
+$ pnpm test
+api:test:  ✓ test/logging.integration.test.ts (5 tests) 175ms
+api:test:  ✓ test/main-shutdown.integration.test.ts (2 tests) 803ms
+api:test:  ✓ test/worker.integration.test.ts (2 tests) 1016ms
+api:test:  ✓ src/common/filters/http-exception.filter.test.ts (4 tests) 14ms
+api:test:  ✓ src/common/correlation/correlation.test.ts (7 tests) 7ms
+api:test:  ✓ src/config/env.schema.test.ts (6 tests) 10ms
+api:test:  ✓ src/worker.test.ts (2 tests) 8ms
+api:test:  ✓ test/health.integration.test.ts (5 tests) 113ms
 api:test:  Test Files  8 passed (8)
 api:test:       Tests  33 passed (33)
-@app/domain:test:  ✓ src/money/money.test.ts (9 tests) 8ms
-storefront:test:  ✓ src/i18n/dictionary.test.ts (3 tests)
-backoffice:test:  ✓ src/i18n/dictionary.test.ts (3 tests)
+backoffice:test:  Test Files  1 passed (1)
+backoffice:test:       Tests  3 passed (3)
+storefront:test:  Test Files  1 passed (1)
+storefront:test:       Tests  3 passed (3)
+@app/domain:test:  Test Files  1 passed (1)
+@app/domain:test:       Tests  9 passed (9)
  Tasks:    11 successful, 11 total
 Cached:    0 cached, 11 total
+  Time:    5.281s
 ```
 
-`@app/contracts`, `@app/db`, `@app/i18n`, `@app/testing`, `@app/ui` : « No test files found,
-exiting with code 0 » (paquets volontairement vides au L00, `passWithNoTests: true`).
+EXIT=0. Total : **48 tests unitaires/intégration** (33 api + 9 domain + 3 storefront + 3
+backoffice), aucun avertissement ESM/CJS dans la sortie. `@app/contracts`, `@app/db`, `@app/i18n`,
+`@app/testing`, `@app/ui` : « No test files found, exiting with code 0 » (paquets volontairement
+vides au L00, `passWithNoTests: true`) — comptés dans les 11 tâches `turbo`, mais sans test propre.
+
+### `pnpm format:check`, `pnpm lint`, `pnpm test:lint-boundaries` (AC-L00-02, AC-L00-08)
+
+```text
+$ pnpm format:check
+$ prettier --check .
+Checking formatting...
+All matched files use Prettier code style!
+
+$ pnpm lint
+$ eslint .
+(sortie vide = succès, aucun problème)
+
+$ pnpm test:lint-boundaries
+$ node --test tools/eslint-boundaries.test.mjs
+▶ Frontières ESLint (H1) — fixtures commitées, config réelle
+  ✔ storefront → backoffice : import-x/no-restricted-paths (severity 2)
+  ✔ storefront → api : import-x/no-restricted-paths (severity 2)
+  ✔ api → storefront (cible .js réelle) : import-x/no-restricted-paths (severity 2)
+  ✔ packages/db → apps/api : import-x/no-restricted-paths (severity 2)
+  ✔ packages/domain → @nestjs/common : no-restricted-imports (severity 2)
+  ✔ packages/domain → pg (M8) : no-restricted-imports (severity 2)
+  ✔ packages/domain → bullmq (M8) : no-restricted-imports (severity 2)
+  ✔ packages/domain → @aws-sdk/client-s3 (M8) : no-restricted-imports (severity 2)
+  ✔ packages/domain → postgres (M8) : no-restricted-imports (severity 2)
+  ✔ packages/domain → ioredis (M8) : no-restricted-imports (severity 2)
+  ✔ packages/domain → stripe (M8) : no-restricted-imports (severity 2)
+  ✔ packages/domain → import() dynamique (M8) : no-restricted-syntax (severity 2)
+  ✔ packages/domain → node:module/createRequire (N9) : no-restricted-imports (severity 2)
+  ✔ packages/domain → type import("...") (N9) : no-restricted-syntax (severity 2)
+  ✔ storefront → <img> brut (M2) : @next/next/no-img-element (severity 1)
+  ✔ storefront → promesse non attendue (M2) : @typescript-eslint/no-floating-promises (severity 2)
+  ✔ contre-épreuve : un import interne légitime ne déclenche aucune de ces règles
+ℹ tests 17
+ℹ pass 17
+ℹ fail 0
+```
+
+EXIT=0 pour les trois commandes. `test:lint-boundaries` : **17/17 verts**, dont la contre-épreuve.
 
 ### `pnpm build` (AC-L00-02)
 
+**Corrige le constat R1-bis (audit-3.md)** : une version précédente de ce rapport montrait
+`┌ ○ /_not-found` (rendu **statique**), un extrait périmé d'avant le correctif M1 (audit 2), qui a
+justement rendu ces routes dynamiques pour permettre l'injection du nonce CSP. Rejoué sur clone
+propre — la sortie réelle actuelle est :
+
 ```text
-storefront:build: Route (app) ┌ ○ /_not-found └ /[locale] ├ ● /fr └ ● /en
-backoffice:build: Route (app) ┌ ○ /_not-found └ /[locale] ├ ● /fr └ ● /en
+$ pnpm build
+storefront:build: ✓ Compiled successfully in 7.8s
+storefront:build:   Finished TypeScript in 2.0s
+storefront:build: Route (app)
+storefront:build: ┌ ƒ /_not-found
+storefront:build: └ ƒ /[locale]
+storefront:build: ƒ Proxy (Middleware)
+storefront:build: ƒ  (Dynamic)  server-rendered on demand
+backoffice:build: ✓ Compiled successfully in 8.3s
+backoffice:build:   Finished TypeScript in 2.1s
+backoffice:build: Route (app)
+backoffice:build: ┌ ƒ /_not-found
+backoffice:build: └ ƒ /[locale]
+backoffice:build: ƒ Proxy (Middleware)
+backoffice:build: ƒ  (Dynamic)  server-rendered on demand
+api:build: $ tsc -p tsconfig.build.json
+
  Tasks:    10 successful, 10 total
+Cached:    1 cached, 10 total
+  Time:    14.964s
 ```
 
-`apps/api/dist/{main.js,worker.js,app.module.js,...}` généré (vérifié par `ls`).
+EXIT=0. `apps/api/dist/{main.js,worker.js,app.module.js,...}` généré (vérifié par `ls`). Toutes les
+routes des deux apps Next sont bien en rendu dynamique (`ƒ`), aucune route statique (`○`/`●`) —
+cohérent avec `await connection()` dans `[locale]/layout.tsx` et `app/not-found.tsx` (nonce CSP).
 
 ### Démarrage réel de l'API buildée (AC-L00-04, AC-L00-06)
 
@@ -276,39 +406,39 @@ avec `reqId: "req-1"` avant que `onRequest` ne l'assigne), et les logs Nest (boo
 texte coloré, pas en JSON. L'audit l'a constaté par relecture directe des logs sur clone propre.
 
 Corrigé par le commit `d22df13` : `FastifyAdapter({ requestIdHeader: "x-correlation-id", genReqId,
-requestIdLogLabel: "correlationId" })` + `ConsoleLogger` Nest en JSON. Rejoué maintenant (build +
-démarrage réel du binaire `dist/main.js`, pas seulement un test unitaire) :
+requestIdLogLabel: "correlationId" })` + `ConsoleLogger` Nest en JSON. L'extrait ci-dessus (constaté
+alors) date de cette période **et est antérieur au correctif N4** (`e888cea`, audit 2), qui a retiré
+les champs `host`/`remoteAddress`/`remotePort` des logs de requête (liste d'autorisation explicite,
+`{ method, url }` uniquement, plus de query string). **Il est conservé ici uniquement pour
+l'historique** — il ne reflète plus le comportement actuel du serveur.
+
+**Corrige le constat R1-bis (audit-3.md)** : une version précédente de ce rapport présentait
+l'extrait ci-dessus comme la preuve *actuelle* d'AC-L00-04/06, alors que les champs `host` et
+`remoteAddress` qu'il contient ont depuis été supprimés (N4). Voici l'extrait **actuel**, rejoué sur
+clone propre le 2026-09-24 (commit `a4abeb5`), avec le paramètre `?token=x` demandé par l'audit pour
+vérifier qu'aucune query string ne fuite dans les logs :
 
 ```text
-$ NODE_ENV=development PORT=3998 HOST=127.0.0.1 LOG_LEVEL=info node dist/main.js
-{"level":30,"time":1790266313634,...,"msg":"Server listening at http://127.0.0.1:3998"}
-{"level":"log","pid":22564,"timestamp":1790266313635,"message":"Nest application successfully started","context":"NestApplication"}
-{"level":"info","message":"API démarrée","timestamp":"2026-09-24T16:11:53.636Z","port":3998,"host":"127.0.0.1","nodeEnv":"development"}
+$ NODE_ENV=production PORT=3000 HOST=0.0.0.0 LOG_LEVEL=info node dist/main.js
+{"level":30,"time":1790281666582,"pid":9551,"hostname":"vm","msg":"Server listening at http://127.0.0.1:3000"}
+{"level":"log","pid":9551,"timestamp":1790281666583,"message":"Nest application successfully started","context":"NestApplication"}
+{"level":"info","message":"API démarrée","timestamp":"2026-09-24T20:27:46.584Z","port":3000,"host":"0.0.0.0","nodeEnv":"production"}
 
-$ curl -sD - http://127.0.0.1:3998/health/live
-HTTP/1.1 200 OK
-Content-Security-Policy: default-src 'self';...
-Strict-Transport-Security: max-age=31536000; includeSubDomains
-x-correlation-id: db1070f0-34d3-45a5-86a5-4b5aad456eeb
+$ curl "http://127.0.0.1:3000/health/live?token=x"
 {"status":"ok"}
+HTTP_STATUS:200
 
-$ curl -sD - -H "x-correlation-id: audit1-corr-test" http://127.0.0.1:3998/health/live
-HTTP/1.1 200 OK
-x-correlation-id: audit1-corr-test
-{"status":"ok"}
-
---- logs capturés (extrait) ---
-{"level":30,"time":1790266314661,"pid":22564,"hostname":"vm","correlationId":"db1070f0-34d3-45a5-86a5-4b5aad456eeb","req":{"method":"GET","url":"/health/live","host":"127.0.0.1:3998","remoteAddress":"127.0.0.1","remotePort":37964},"msg":"incoming request"}
-{"level":30,"time":1790266314671,"pid":22564,"hostname":"vm","correlationId":"db1070f0-34d3-45a5-86a5-4b5aad456eeb","res":{"statusCode":200},"responseTime":7.49,"msg":"request completed"}
-{"level":30,"time":1790266314677,"pid":22564,"hostname":"vm","correlationId":"audit1-corr-test","req":{"method":"GET","url":"/health/live","host":"127.0.0.1:3998","remoteAddress":"127.0.0.1","remotePort":37974},"msg":"incoming request"}
-{"level":30,"time":1790266314678,"pid":22564,"hostname":"vm","correlationId":"audit1-corr-test","res":{"statusCode":200},"responseTime":0.51,"msg":"request completed"}
+--- log de la requête ci-dessus (extrait réel, non modifié) ---
+{"level":30,"time":1790281666602,"pid":9551,"hostname":"vm","correlationId":"d1a3e061-0ee0-4e4f-99af-4b8aa17d07cb","req":{"method":"GET","url":"/health/live"},"msg":"incoming request"}
+{"level":30,"time":1790281666608,"pid":9551,"hostname":"vm","correlationId":"d1a3e061-0ee0-4e4f-99af-4b8aa17d07cb","res":{"statusCode":200},"responseTime":5.163687000000095,"msg":"request completed"}
 ```
 
-Confirme empiriquement (pas seulement par test unitaire) : `/health/live` répond 200 (contrat
-exact), en-tête `x-correlation-id` généré si absent et réutilisé si fourni, chaque log de requête
-porte désormais `correlationId` en JSON valide (plus de `reqId: "req-1"`), en-têtes de sécurité
-Helmet présents (CSP, HSTS, etc.). Commande exécutée le 2026-09-24 dans le cadre de cette passe A,
-`kill` du process après capture, aucun résiduel (`ps` vérifié).
+Confirme empiriquement (pas seulement par test unitaire), sur le binaire buildé réel : `/health/live`
+répond 200 même avec une query string (`?token=x`) ; le log `req` ne contient **que**
+`{method, url}`, `url` **sans la query string** (`/health/live`, pas `/health/live?token=x`) — donc
+ni `token`, ni aucun autre paramètre de requête, ni `host`, ni `remoteAddress`/`remotePort`, ni IP.
+`correlationId` présent en JSON sur chaque ligne. Le process a été arrêté (`kill`) dans la même
+commande ; `pgrep -fa "dist/main.js"` après coup : aucun résultat.
 
 ### `pnpm test:e2e` (AC-L00-09)
 
@@ -352,42 +482,92 @@ Running 13 tests using 2 workers
 trivialement la chaîne de sa propre commande) : aucun processus `next-server` réel résiduel
 (confirmé par `ps aux | grep -i next-server | grep -v grep`, sortie vide).
 
-### `.claude/hooks/test-guards.sh` (AC-L00-12)
+**Rejoué une nouvelle fois pour cette révision (R1-bis, commit `a4abeb5`, inclut désormais L-a — le
+reporter HTML — et L-b — l'assertion de titre 404)** :
 
 ```text
-ok   [0] git push -u origin claude/feature-x
-...
-ok   [2] git push --force origin feat
-ok   [2] git push -f
-ok   [2] git push origin main
-...
-ok   [0] /repo/.env.example
-ok   [2] /repo/.env
-(29 cas, tous « ok », code de sortie global 0)
+$ timeout 300 pnpm test:e2e
+Running 13 tests using 2 workers
+  ✓ [chromium] › not-found.spec.ts › storefront — pages 404 › /fr/inexistant (746ms)
+  ✓ [chromium] › not-found.spec.ts › storefront — pages 404 › /xx (805ms)
+  ✓ [chromium] › not-found.spec.ts › backoffice — pages 404 › /fr/inexistant (655ms)
+  ✓ [chromium] › not-found.spec.ts › backoffice — pages 404 › /xx (704ms)
+  ✓ [chromium] › pages.spec.ts › storefront FR/EN (2 tests)
+  ✓ [chromium] › pages.spec.ts › backoffice FR/EN (2 tests)
+  ✓ [chromium] › security-headers.spec.ts › CSP et en-têtes (4 tests)
+  ✓ [chromium] › security-headers.spec.ts › nonce CSP correspond aux scripts inline (1 test)
+  13 passed (5.9s)
+EXIT=0
 ```
 
-**Rejoué réellement sur clone propre le 2026-09-24 (commit `b0a7db9`)**, après N7 (règle `.env`
-générique — commit `fba8082`, couvre désormais toute variante `.env.*` sauf les modèles
-`.env.example`/`.env.sample`/`.env.template`, plus des cas ajoutés au fil des audits) : **31 cas,
-tous « ok », code de sortie global 0** (sortie complète reproduite dans « Corrections audit 2 »,
-entrée N7).
+L'assertion `await expect(page).toHaveTitle("404 — Page introuvable / Page not found")` (ajoutée par
+L-b dans `not-found.spec.ts`) passe pour `/fr/inexistant` **et** `/xx`, dans les deux apps —
+confirmant le titre bilingue cohérent quel que soit le chemin qui mène à la 404.
+
+**L-a (reporter HTML)** : `ls -la playwright-report/index.html` après la commande ci-dessus →
+fichier présent (527 667 octets), à la racine du clone — confirmant que `outputFolder` (chemin
+absolu vers la racine du dépôt dans `e2e/playwright.config.ts`) correspond bien au chemin attendu
+par l'artefact CI (`.github/workflows/ci.yml`, `path: playwright-report/`).
+
+`pgrep -fa next-server` après la commande : aucun processus vivant résiduel (seuls des processus
+`<defunct>` déjà réapés par le shell apparaissent transitoirement, aucun processus actif).
+
+### `.claude/hooks/test-guards.sh` (AC-L00-12)
+
+**Corrige le constat R1-bis (audit-3.md)** : une version précédente de ce rapport annonçait
+« 31 cas ». L'audit 3 a rejoué le script et trouvé **36** « ok » (pas 31), et a identifié une
+régression de la règle `.env` (**N11**) : plusieurs variantes (`cat .env|head`, `cat .env;echo`,
+`cat <.env`, `.env.production.local`, `.env.development.local`, `.env.local.bak`,
+`.env.example.local`, `.env.sample.bak`) n'étaient pas bloquées. **N11 a été corrigé par le fil
+principal Opus** (`.claude/hooks/guard-bash.sh`, hors périmètre de cet agent) : suffixes multiples,
+terminateurs `| ; & < >  )`, redirection `<.env`, liste d'autorisation limitée aux modèles terminaux
+exacts. Rejoué sur clone propre pour cette révision (commit `a4abeb5`, inclut le correctif N11 fait
+sur la branche avant L-a/L-b) :
+
+```text
+$ bash .claude/hooks/test-guards.sh
+...
+ok   [2] cat .env.production.local
+ok   [2] cat .env.development.local
+ok   [2] cat .env.local.bak
+ok   [2] cat .env.example.local
+ok   [2] cat .env.sample.bak
+ok   [0] /repo/.env.example
+ok   [2] /repo/.env
+$ echo EXIT=$?
+EXIT=0
+$ grep -c '^ok' <sortie ci-dessus>
+45
+```
+
+**45 cas, tous « ok », code de sortie global 0** — le nombre exact attendu par l'audit 3, y compris
+les 9 nouveaux cas ajoutés par cet audit.
+
+### `pnpm audit --prod --audit-level=critical` (AC-L00-10)
+
+```text
+$ pnpm audit --prod --audit-level=critical
+No known vulnerabilities found
+```
+
+EXIT=0. Aucune dépendance de production avec une vulnérabilité critique connue, au 2026-09-24.
 
 ## Statut détaillé des critères d'acceptation
 
 | AC | Statut | Détail |
 |---|---|---|
-| AC-L00-01 | **OK** | `pnpm install` réussit, lockfile commité. `--frozen-lockfile` non rejoué tel quel après le tout dernier ajustement (voir ci-dessus) — à confirmer en CI. |
-| AC-L00-02 | **OK** | format:check, lint, typecheck, test, build tous verts (sorties ci-dessus). |
+| AC-L00-01 | **OK** | `pnpm install --frozen-lockfile` rejoué sur clone propre le 2026-09-24 (commit `a4abeb5`, R1-bis) : EXIT=0 (voir « Commandes exécutées »). Corrige la contradiction relevée par l'audit 3 (une version antérieure du rapport annonçait cette commande « non rejouée tel quel »). |
+| AC-L00-02 | **OK** | format:check, lint, typecheck (10/10), test:lint-boundaries (17/17), test (48 tests), build (10/10, routes dynamiques) tous verts, rejoués sur clone propre le 2026-09-24 (commit `a4abeb5`, R1-bis — voir « Commandes exécutées »). |
 | AC-L00-03 | **Non vérifié dans cette session (démon Docker indisponible dans le bac à sable)** | `infra/docker/compose.yaml` déclare PostgreSQL, Redis, Mailpit et SeaweedFS (S3, remplace MinIO puis LocalStack Pro — voir « Corrections audit 2 », H4), toutes les images épinglées par tag **et par digest** (L5). `docker compose -f infra/docker/compose.yaml config` réussit (EXIT=0) sur cette session, mais `docker compose up -d --wait` (4 services healthy) n'a jamais été exécuté faute de démon Docker disponible — **à confirmer par un humain ou par la CI avant fusion** (voir « Reste à confirmer »). |
 | AC-L00-04 | **OK** | Vérifié à la fois par test d'intégration légère (`app.inject`) et par un vrai `curl` sur le binaire buildé (voir ci-dessus, rejoué le 2026-09-24). |
 | AC-L00-05 | **OK** | Tests unitaires `env.schema.test.ts` : `NODE_ENV` manquant ou invalide lève `ConfigValidationError` ; message ne contient jamais la valeur fournie (assertion explicite `not.toContain`). |
-| AC-L00-06 | **OK, corrigé (H2, commit `d22df13`)** | **À l'audit 1 : KO** — aucun log de requête ne portait `correlationId`, logs Nest en texte. Corrigé : `FastifyAdapter` avec `genReqId`/`requestIdLogLabel`, `ConsoleLogger` Nest en JSON. Rejoué le 2026-09-24 sur le binaire buildé : chaque ligne « incoming request »/« request completed » est un JSON valide avec `correlationId` (voir « Démarrage réel de l'API buildée » ci-dessus). |
+| AC-L00-06 | **OK, corrigé (H2, commit `d22df13` ; logs sans query/host/IP depuis N4, commit `e888cea`)** | **À l'audit 1 : KO** — aucun log de requête ne portait `correlationId`, logs Nest en texte. Corrigé : `FastifyAdapter` avec `genReqId`/`requestIdLogLabel`, `ConsoleLogger` Nest en JSON. **Rejoué sur clone propre le 2026-09-24 (commit `a4abeb5`, R1-bis)** sur le binaire buildé, avec `?token=x` en query string : chaque ligne « incoming request »/« request completed » est un JSON valide avec `correlationId`, `req` limité à `{method, url}` sans la query string, sans `host` ni `remoteAddress`/`remotePort` (voir « Démarrage réel de l'API buildée » ci-dessus — corrige un extrait périmé antérieur qui montrait encore ces champs). |
 | AC-L00-07 | **OK** | `packages/domain/src/money/money.test.ts` : `add(1000, "CHF") + (250, "CHF") = 1250n` ; CHF+EUR lève `MoneyError` ; montant non entier refusé. **Rejoué sur clone propre le 2026-09-24 (commit `b0a7db9`)** : 9 tests verts. |
 | AC-L00-08 | **OK, corrigé (H1, commit `f539d2d`), étendu (N9, commit `b0a7db9`)** | **À l'audit 1 : KO** — `import-x/no-restricted-paths` n'avait aucun résolveur TypeScript et ignorait silencieusement tout import `.ts` non résolu. Corrigé : résolveur `eslint-import-resolver-typescript`, fixtures commitées, `tools/eslint-boundaries.test.mjs`. **N9 (audit-2.md)** : `packages/domain` pouvait encore contourner la liste d'autorisation via `node:module`/`createRequire` ou le type `import("...")` (`TSImportType`, non capté par `ImportExpression`) — les deux sont désormais interdits par `no-restricted-imports`/`no-restricted-syntax`, avec fixtures dédiées. `pnpm test:lint-boundaries` rejoué sur clone propre le 2026-09-24 : **17/17 verts** (dont les 2 nouveaux cas N9), y compris la contre-épreuve. |
-| AC-L00-09 | **OK** | `pnpm test:e2e` rejoué sur clone propre le 2026-09-24 (commit `b0a7db9`, inclut aussi M1) : **13/13 tests verts**, exit 0, aucun processus résiduel (`ps aux \| grep next-server` vide). |
-| AC-L00-10 | **Corrigé (N5, commit `e888cea`) ; non vérifié sur un run GitHub Actions réel** | `permissions: contents: read` au niveau workflow, `fetch-depth: 0` sur `actions/checkout`, actions épinglées par SHA de commit, `pnpm audit --prod --audit-level=critical` bloquant, `node-version-file: .nvmrc`, `pnpm test:lint-boundaries` en CI. **N5 (audit-2.md)** : `gitleaks/gitleaks-action` interrogeait l'API GitHub des commits d'une PR, non paginée (30 commits max) — remplacé par la CLI officielle `gitleaks` v8.30.1, épinglée par somme SHA-256 vérifiée manuellement, exécutée directement sur l'historique complet du clone (`gitleaks detect --source .`, sans dépendre d'une liste de commits fournie par une API tierce). YAML validé. **Non vérifié** : aucun run GitHub Actions déclenché depuis cet environnement (pas de push) ; démonstration sur un secret factice non faite. **À confirmer à la première PR réelle** (voir « Reste à confirmer »). |
-| AC-L00-11 | **Non vérifié dans cette session (démon Docker indisponible)** | `infra/docker/api.Dockerfile` écrit, relu, et le job CI `docker-api` (`build` + exécution non-root + `/health/live`, `needs: ci`) est en place depuis l'audit 1 — mais aucun `docker build` réel n'a été exécuté dans ce bac à sable à aucune passe de ce lot. Images `node:24.21.0-alpine` désormais épinglées par digest en plus du tag (L5). **À confirmer par un humain ou par la CI avant fusion** (voir « Reste à confirmer »). |
-| AC-L00-12 | **OK** | `.claude/hooks/test-guards.sh` rejoué sur clone propre le 2026-09-24 (commit `b0a7db9`) : 31 cas, tous corrects (`ok`), code de sortie global 0. |
+| AC-L00-09 | **OK** | `pnpm test:e2e` rejoué sur clone propre le 2026-09-24 (commit `a4abeb5`, R1-bis, inclut L-a/L-b) : **13/13 tests verts**, exit 0, `playwright-report/index.html` généré à la racine (L-a), aucun processus résiduel (`pgrep -fa next-server` vide). |
+| AC-L00-10 | **Corrigé (N5, commit `e888cea`) ; `pnpm audit --prod --audit-level=critical` OK localement ; non vérifié sur un run GitHub Actions réel** | `permissions: contents: read` au niveau workflow, `fetch-depth: 0` sur `actions/checkout`, actions épinglées par SHA de commit, `pnpm audit --prod --audit-level=critical` bloquant, `node-version-file: .nvmrc`, `pnpm test:lint-boundaries` en CI. **N5 (audit-2.md)** : `gitleaks/gitleaks-action` interrogeait l'API GitHub des commits d'une PR, non paginée (30 commits max) — remplacé par la CLI officielle `gitleaks` v8.30.1, épinglée par somme SHA-256 vérifiée manuellement, exécutée directement sur l'historique complet du clone (`gitleaks detect --source .`, sans dépendre d'une liste de commits fournie par une API tierce). YAML validé. `pnpm audit --prod --audit-level=critical` rejoué sur clone propre le 2026-09-24 : « No known vulnerabilities found », EXIT=0. **Non vérifié** : aucun run GitHub Actions déclenché depuis cet environnement (pas de push, cf. condition de fusion 1 de l'audit 3) ; démonstration gitleaks sur un secret factice non faite en CI réelle (condition de fusion 3). |
+| AC-L00-11 | **Non vérifié dans cette session (démon Docker indisponible)** | `infra/docker/api.Dockerfile` écrit, relu, et le job CI `docker-api` (`build` + exécution non-root + `/health/live`, `needs: ci`) est en place depuis l'audit 1 — mais aucun `docker build` réel n'a été exécuté dans ce bac à sable à aucune passe de ce lot. Images `node:24.21.0-alpine` désormais épinglées par digest en plus du tag (L5), digests revérifiés par l'audit 3 (résolution exacte vers l'image épinglée). **À confirmer par un humain ou par la CI avant fusion** (condition de fusion 1 et 2 de l'audit 3). |
+| AC-L00-12 | **OK** | `.claude/hooks/test-guards.sh` rejoué sur clone propre le 2026-09-24 (commit `a4abeb5`, R1-bis, inclut le correctif N11 fait par Opus) : **45 cas, tous « ok »**, code de sortie global 0 — corrige la valeur erronée (« 31 ») d'une version antérieure de ce rapport (constat R1-bis de l'audit 3). |
 | AC-L00-13 | **Sans objet** | `bonjour.html` a été **retiré du dépôt à la demande explicite du porteur** le 2026-09-24 (voir `CLAUDE.md`, section « État du projet » : « L'ancien fichier de test `bonjour.html` a été retiré... le dépôt est entièrement dédié à ce SaaS »). Ce critère, qui portait sur la préservation de ce fichier, n'a donc plus d'objet ; il ne s'agit pas d'un échec ni d'une suppression non autorisée par l'agent. |
 
 ## Corrections audit 1
@@ -449,12 +629,24 @@ contraire explicite.
 | **N4 (MEDIUM)** — logs de requête contenant la query string, l'IP et le host, sans liste d'autorisation | `e888cea` | `apps/api/src/app.ts` : sérialiseur `req` explicite (`{ method, url: url.split("?")[0] }`), ni `host` ni `remoteAddress`/`remotePort`. `apps/api/test/logging.integration.test.ts` (nouveau) vérifie qu'un `?token=secret` n'apparaît dans aucun log. `pnpm test` (api, clone propre) : 33/33 verts, y compris ce test. |
 | **N5 (MEDIUM)** — `gitleaks-action` ne scanne que les 30 premiers commits d'une PR (API GitHub non paginée) | `e888cea` | `.github/workflows/ci.yml` : CLI `gitleaks` v8.30.1 téléchargée et vérifiée par somme SHA-256 (`gitleaks_8.30.1_checksums.txt` de la release officielle), exécutée avec `gitleaks detect --source . --redact` sur l'historique complet (`actions/checkout` avec `fetch-depth: 0`), au lieu de l'action tierce. YAML validé. **Non rejoué en CI réelle** (pas de push) — voir « Reste à confirmer ». |
 | **N6 (LOW)** — `node --watch` provoquait une assertion native (`FSEventWrap::GetInitialized`) à l'arrêt en mode `pnpm dev` | `e888cea` | `apps/api/scripts/dev.mjs` réécrit : abandon de `node --watch`, remplacé par `fs.watch(dist/, { recursive: true })` géré par le script lui-même (spawn/kill classiques du process applicatif, jamais de mode `--watch` natif). Non rejoué manuellement dans cette passe (hors de la liste des commandes R1) — comportement inchangé depuis le commit, `pnpm typecheck`/`lint`/`test` restent verts. |
-| **N7 (LOW)** — la liste deny des `.env` procédait par énumération (`.env.dev`, `.env.backup`… non couverts) | `fba8082` | `.claude/hooks/guard-bash.sh` : motif générique bloquant toute variante `.env.*` sauf `.env.example`/`.env.sample`/`.env.template` (au lieu d'une énumération de suffixes). `.claude/hooks/test-guards.sh` rejoué sur clone propre : **31/31 cas « ok »**, code de sortie global 0. |
+| **N7 (LOW)** — la liste deny des `.env` procédait par énumération (`.env.dev`, `.env.backup`… non couverts) | `fba8082` | `.claude/hooks/guard-bash.sh` : motif générique bloquant toute variante `.env.*` sauf `.env.example`/`.env.sample`/`.env.template` (au lieu d'une énumération de suffixes). `.claude/hooks/test-guards.sh` rejoué sur clone propre : 31/31 cas « ok », code de sortie global 0. **Historique — insuffisant** : l'audit 3 a montré que ce correctif laissait passer d'autres variantes (régression **N11**, voir « Corrections audit 3 »), corrigées depuis par le fil principal Opus. La valeur actuelle est 45/45 (voir « Commandes exécutées »). |
 | **N8 (LOW)** — `npx --yes turbo@2.11.3` dans le Dockerfile, hors lockfile | `e888cea` | `infra/docker/api.Dockerfile`, stage `pruner` : `RUN pnpm install --frozen-lockfile` puis `RUN pnpm exec turbo prune api --docker` (binaire `turbo` déjà verrouillé par `pnpm-lock.yaml`, aucun accès au registre npm hors lockfile). Non rejoué par un `docker build` réel dans cette passe (démon indisponible, voir « Reste à confirmer ») ; syntaxe du Dockerfile relue. |
 | **N9 (LOW)** — `createRequire`/`node:module` et le type `import("...")` (`TSImportType`) non interdits dans `packages/domain`, contournant la liste d'autorisation M8 | `b0a7db9` | `eslint.config.mjs` : nouveau motif `no-restricted-imports` sur `["node:module", "module"]` et nouveau sélecteur `no-restricted-syntax` sur `TSImportType`. Fixtures `packages/domain/src/__lint-fixtures__/{imports-node-module.ts,type-import.ts}` + 2 cas dans `tools/eslint-boundaries.test.mjs`. `pnpm test:lint-boundaries` sur clone propre : **17/17 verts**. |
 | **N10 (LOW)** — avertissement Vite « ESM syntax in a file loaded as CommonJS » sur `apps/{storefront,backoffice}/vitest.config.ts` | `b0a7db9` | Cause identifiée : ces deux apps n'ont pas `"type": "module"` dans leur `package.json` (contrairement à tous les `packages/*`), donc `vitest.config.ts` y est chargé comme CommonJS par défaut. `vitest.config.ts` renommé en `vitest.config.mts` dans les deux apps (Vitest le détecte automatiquement, aucun script à modifier). `pnpm --filter storefront test` et `pnpm --filter backoffice test` sur clone propre : 3/3 verts chacun, **aucun avertissement** dans la sortie. |
 | **L5** — images Docker épinglées par tag mais pas par digest (`postgres`, `redis`, `mailpit`, `node`) | `b0a7db9` | Digests obtenus **réellement** via l'API Docker Hub (`GET /v2/repositories/<ns>/tags/<tag>`, champ `digest`, interrogée le 2026-09-24) : `postgres:16.15-alpine`, `redis:7.4-alpine`, `axllent/mailpit:v1.20.7`, `node:24.21.0-alpine` (base et runtime du Dockerfile `api`) — tag conservé dans chaque cas, digest ajouté après `@sha256:...`. `chrislusf/seaweedfs:4.47` était déjà épinglé par digest depuis `56b91f6` (H4). `docker compose -f infra/docker/compose.yaml config` → EXIT=0. |
-| **R1 (MEDIUM, ex-H7)** — rapport d'implémentation contradictoire (H4, AC-11, écart 6, AC-13, nombre de tests) | *(ce commit)* | Cette mise à jour du rapport : tableau des AC corrigé (AC-03, AC-10, AC-11 reformulés sans mention de LocalStack/MinIO périmée ; AC-13 « sans objet », `bonjour.html` retiré à la demande du porteur) ; section « Corrections audit 2 » (ce tableau) ; section « Reste à confirmer par la CI ou un humain » (ci-dessous) ; nombres de tests mis à jour partout où ils étaient cités (33 api, 9 domain, 3+3 storefront/backoffice, 13 e2e, 17 lint-boundaries, 31 test-guards) ; écart 6 (« CI ne construit pas l'image Docker ») retiré car périmé (le job `docker-api` existe depuis l'audit 1, `1a4d06e`/`6f1d6ec`). Toutes les commandes de cette liste ont été rejouées sur un clone propre, pas seulement relues. |
+| **R1 (MEDIUM, ex-H7)** — rapport d'implémentation contradictoire (H4, AC-11, écart 6, AC-13, nombre de tests) | `15309bb` | Cette mise à jour du rapport : tableau des AC corrigé (AC-03, AC-10, AC-11 reformulés sans mention de LocalStack/MinIO périmée ; AC-13 « sans objet », `bonjour.html` retiré à la demande du porteur) ; section « Corrections audit 2 » (ce tableau) ; section « Reste à confirmer par la CI ou un humain » (ci-dessous) ; nombres de tests mis à jour partout où ils étaient cités (33 api, 9 domain, 3+3 storefront/backoffice, 13 e2e, 17 lint-boundaries, 31 test-guards) ; écart 6 (« CI ne construit pas l'image Docker ») retiré car périmé (le job `docker-api` existe depuis l'audit 1, `1a4d06e`/`6f1d6ec`). **Historique — incomplet** : l'audit 3 a constaté que ce commit rejouait la plupart des chiffres mais en recopiait d'autres sans les rejouer réellement (typecheck « 11 », build `○ /_not-found`, logs avec `host`/`remoteAddress`, contradiction `--frozen-lockfile`) — voir « Corrections audit 3 » ci-dessous pour le correctif complet (R1-bis). |
+
+## Corrections audit 3
+
+Suite au verdict `CHANGES_REQUIRED` de `docs/lots/L00-socle/audit-3.md` (contre-audit rejoué sur
+clone propre par `auditor-opus`), 0 BLOCKER, 0 HIGH, 2 MEDIUM ciblés :
+
+| Constat | Qui / Commit | Détail |
+|---|---|---|
+| **N11 (MEDIUM)** — régression du garde-fou `.env` (`fba8082`) : `cat .env\|head`, `cat .env;echo`, `cat <.env`, `.env.production.local`, `.env.development.local`, `.env.local.bak`, `.env.example.local`, `.env.sample.bak` non bloqués | **Fil principal Opus** (`.claude/`, hors périmètre de cet agent), commit `3e491eb` | Suffixes multiples, terminateurs `\| ; & < > )`, redirection `<.env`, liste d'autorisation limitée aux modèles terminaux exacts. `.claude/hooks/test-guards.sh` rejoué par cet agent sur clone propre pour R1-bis : **45/45 « ok »**, code de sortie global 0 (voir « Commandes exécutées »). Cet agent n'a pas modifié `.claude/hooks/guard-bash.sh` et ne revendique pas ce correctif. |
+| **L-a (LOW)** — le reporter HTML Playwright n'était pas configuré, artefact CI `playwright-report/` vide | Cet agent, commit `a4abeb5` | `e2e/playwright.config.ts` : ajout de `["html", { open: "never", outputFolder: path.join(ROOT_DIR, "playwright-report") }]` à côté de `["list"]`. Chemin **absolu** vers la racine du dépôt utilisé délibérément : Playwright résout `outputFolder` relativement au dossier du fichier de config (`e2e/`), pas au répertoire d'exécution — un chemin relatif aurait produit `e2e/playwright-report`, incohérent avec l'artefact CI (`ci.yml`, `path: playwright-report/`, à la racine). Vérifié sur clone propre : `playwright-report/index.html` présent à la racine après `pnpm test:e2e` (voir « Commandes exécutées »). |
+| **L-b (LOW)** — commentaire inexact dans `[locale]/layout.tsx` (référence à un fichier `[locale]/not-found.tsx` inexistant côté storefront) ; titre 404 anglais seul (« Not found ») pour un segment `[locale]` non supporté (ex. `/xx`) | Cet agent, commit `a4abeb5` | Commentaire du storefront réécrit pour référencer `app/not-found.tsx` (le fichier qui s'applique réellement, comme déjà documenté côté backoffice). `generateMetadata` des deux apps renvoie désormais `{ title: "404 — Page introuvable / Page not found" }` (même libellé que `app/global-not-found.tsx`) au lieu de `{ title: "Not found" }`. Assertion ajoutée dans `e2e/tests/not-found.spec.ts` : `await expect(page).toHaveTitle(...)` pour `/fr/inexistant` et `/xx`, dans les deux apps. `pnpm test:e2e` rejoué sur clone propre : 13/13 verts, y compris ces 4 assertions de titre. |
+| **R1-bis (MEDIUM)** — rapport d'implémentation citant des chiffres faux ou périmés présentés comme actuels (« 31 cas », typecheck « 11 », `○ /_not-found`, logs avec `host`/`remoteAddress`, contradiction `--frozen-lockfile`, lignes de `ci.yml` non revérifiées) | Cet agent, *(ce commit)* | Ce document : section « Commandes exécutées et résultats réels » entièrement rejouée sur un **clone propre distinct** (`git clone /home/user/app-test <scratchpad>/r1bis`, `git checkout a4abeb5`), avec extraits réels pour `pnpm install --frozen-lockfile`, `pnpm test` (sans build), `pnpm format:check`, `pnpm lint`, `pnpm typecheck` (10/10, pas 11), `pnpm test:lint-boundaries` (17/17), `pnpm build` (10/10, routes `ƒ` dynamiques, pas `○`), `pnpm test:e2e` (13/13 + `playwright-report/index.html` confirmé), `.claude/hooks/test-guards.sh` (45/45, pas 31), `pnpm audit --prod --audit-level=critical` (aucune vulnérabilité), démarrage réel de l'API buildée avec `curl '/health/live?token=x'` et extrait de log montrant `req:{method,url}` sans query ni host ni IP. Tout extrait antérieur conservé pour l'historique est explicitement marqué comme tel. Le clone `r1bis` a été supprimé après vérification. Les lignes précises de `ci.yml` citées dans « Corrections audit 1 » (H3, H5) n'ont pas été revérifiées dans cette passe (hors périmètre des commandes listées par l'audit 3 pour R1-bis) — signalé ici plutôt que corrigé silencieusement ; se fier au contenu du fichier, pas aux numéros de ligne cités dans l'historique. |
 
 ## Tests non exécutés et raison
 
@@ -469,14 +661,21 @@ contraire explicite.
   dans cette passe : `docker info` échoue). Ni contournés, ni simulés au-delà de
   `docker compose config` (validation syntaxique uniquement, EXIT=0) et `pnpm exec` normal — voir
   « Reste à confirmer par la CI ou un humain » ci-dessous.
-- **`cp .env.example .env && pnpm dev`** : non rejoué dans cette passe (`.env.example` existe et
-  est lisible, mais démarrer `pnpm dev` en tâche de fond et le laisser tourner sort du périmètre
-  des commandes listées pour cette passe R1) — voir « Reste à confirmer par la CI ou un humain ».
+- **`cp .env.example .env && pnpm dev`** : **non exécuté délibérément par cet agent**, y compris
+  dans la passe R1-bis — `docs/lots/L00-socle/audit-3.md` (« Conditions de fusion », point 4) exige
+  explicitement que cette commande soit lancée **par un humain** ; par ailleurs
+  `.claude/hooks/guard-bash.sh` bloque toute commande créant/copiant un fichier `.env` réel (motif
+  générique `.env.*`, hors modèles), ce qui est cohérent avec cette exigence. Le démarrage de l'API
+  buildée pour R1-bis (`curl '/health/live?token=x'`) a été fait **sans fichier `.env`**, via des
+  variables d'environnement passées directement au process (`NODE_ENV=... node dist/main.js`), pour
+  ne contourner ni la règle de garde-fou ni l'exigence de validation humaine — voir « Reste à
+  confirmer par la CI ou un humain ».
 
 ## Reste à confirmer par la CI ou un humain avant fusion
 
 Ces points ne peuvent pas être vérifiés dans le bac à sable de cet agent (pas de démon Docker, pas
-de déclenchement réel de GitHub Actions, pas de session interactive humaine) :
+de déclenchement réel de GitHub Actions, pas de session interactive humaine). Ils correspondent aux
+5 « conditions de fusion » listées par `docs/lots/L00-socle/audit-3.md` :
 
 1. **`docker build`** réel de `infra/docker/api.Dockerfile` (job CI `docker-api`, `needs: ci`) :
    construction effective de l'image, exécution non-root (`uid != 0`), réponse `/health/live`.
@@ -493,6 +692,8 @@ de déclenchement réel de GitHub Actions, pas de session interactive humaine) :
 5. **`cp .env.example .env && pnpm dev`** exécuté par un humain (ou un agent disposant d'un accès
    interactif prolongé) : démarrage des trois apps (`api`, `storefront`, `backoffice`) en mode
    développement local, vérification visuelle/manuelle qu'elles répondent correctement ensemble.
+6. **Protection de la branche `main`** : à activer par un humain avec les droits d'administration du
+   dépôt (hors de portée de tout agent).
 
 ## Écarts par rapport à la spec
 
