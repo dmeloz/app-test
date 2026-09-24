@@ -43,4 +43,22 @@ describe("loadConfig", () => {
       expect((error as Error).message).not.toContain("999999");
     }
   });
+
+  it("distingue une variable manquante d'une variable présente mais invalide (L1)", () => {
+    try {
+      loadConfig({});
+      throw new Error("loadConfig aurait dû lever une erreur");
+    } catch (error) {
+      expect((error as Error).message).toMatch(/NODE_ENV : variable manquante/);
+    }
+
+    try {
+      loadConfig({ NODE_ENV: "ne-doit-jamais-apparaitre" });
+      throw new Error("loadConfig aurait dû lever une erreur");
+    } catch (error) {
+      const message = (error as Error).message;
+      expect(message).toMatch(/NODE_ENV : valeur invalide/);
+      expect(message).not.toMatch(/variable manquante/);
+    }
+  });
 });

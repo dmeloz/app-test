@@ -1,11 +1,5 @@
 import "reflect-metadata";
-import helmet from "@fastify/helmet";
-import { NestFactory } from "@nestjs/core";
-import { FastifyAdapter } from "@nestjs/platform-fastify";
-import type { NestFastifyApplication } from "@nestjs/platform-fastify";
-import { AppModule } from "./app.module.js";
-import { registerCorrelationId } from "./common/correlation/correlation.js";
-import { GlobalExceptionFilter } from "./common/filters/http-exception.filter.js";
+import { createApp } from "./app.js";
 import { log } from "./common/logger/json-logger.js";
 import { ConfigValidationError, loadConfig } from "./config/env.schema.js";
 
@@ -25,21 +19,7 @@ function loadConfigOrExit(): ReturnType<typeof loadConfig> {
 async function bootstrap(): Promise<void> {
   const config = loadConfigOrExit();
 
-  const adapter = new FastifyAdapter({
-    logger: { level: config.LOG_LEVEL },
-  });
-
-  const app = await NestFactory.create<NestFastifyApplication>(
-    AppModule.register(config),
-    adapter,
-    {
-      bufferLogs: true,
-    },
-  );
-
-  registerCorrelationId(adapter.getInstance());
-  await app.register(helmet);
-  app.useGlobalFilters(new GlobalExceptionFilter());
+  const app = await createApp(config);
 
   await app.listen(config.PORT, config.HOST);
   log("info", "API démarrée", { port: config.PORT, host: config.HOST, nodeEnv: config.NODE_ENV });

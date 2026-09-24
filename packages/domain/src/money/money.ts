@@ -33,9 +33,12 @@ function toBigIntAmount(amount: number | bigint): bigint {
   if (typeof amount === "bigint") {
     return amount;
   }
-  if (!Number.isInteger(amount)) {
+  // L2 (audit-1.md) : `Number.isInteger` accepte des entiers non sûrs (au-delà de 2^53-1), dont la
+  // représentation flottante peut déjà avoir perdu en précision avant même d'atteindre cette
+  // fonction — inacceptable pour un montant financier. `Number.isSafeInteger` les rejette.
+  if (!Number.isSafeInteger(amount)) {
     throw new MoneyError(
-      "Le montant doit être un entier exprimé dans la plus petite unité de la devise (aucune fraction de centime).",
+      "Le montant doit être un entier sûr (Number.isSafeInteger) exprimé dans la plus petite unité de la devise (aucune fraction de centime, aucun dépassement de précision).",
     );
   }
   return BigInt(amount);

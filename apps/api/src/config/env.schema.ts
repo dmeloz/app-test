@@ -27,11 +27,23 @@ export class ConfigValidationError extends Error {
   }
 }
 
-function describeIssueWithoutLeakingValue(issue: z.core.$ZodIssue): string {
+/**
+ * Décrit un problème de validation sans jamais révéler la valeur fournie. Distingue explicitement
+ * une variable **manquante** (absente de `rawEnv`) d'une variable **présente mais invalide** — les
+ * deux cas produisaient auparavant le même libellé générique « valeur invalide », y compris quand
+ * la variable était simplement absente (L1, audit-1.md).
+ */
+function describeIssueWithoutLeakingValue(
+  issue: z.core.$ZodIssue,
+  rawEnv: NodeJS.ProcessEnv,
+): string {
   const path = issue.path.length > 0 ? issue.path.map(String).join(".") : "(racine)";
+  const key = issue.path[0];
+  const isMissing = typeof key === "string" && rawEnv[key] === undefined;
+  if (isMissing) {
+    return `${path} : variable manquante`;
+  }
   switch (issue.code) {
-    case "invalid_type":
-      return `${path} : variable manquante ou de type invalide`;
     case "too_small":
     case "too_big":
       return `${path} : hors des bornes autorisées`;
@@ -48,7 +60,9 @@ function describeIssueWithoutLeakingValue(issue: z.core.$ZodIssue): string {
 export function loadConfig(rawEnv: NodeJS.ProcessEnv = process.env): AppConfig {
   const result = envSchema.safeParse(rawEnv);
   if (!result.success) {
-    const issues = result.error.issues.map(describeIssueWithoutLeakingValue);
+    const issues = result.error.issues.map((issue) =>
+      describeIssueWithoutLeakingValue(issue, rawEnv),
+    );
     throw new ConfigValidationError(issues);
   }
   return result.data;

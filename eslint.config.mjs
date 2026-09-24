@@ -4,9 +4,15 @@
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 import importX from "eslint-plugin-import-x";
+import { createTypeScriptImportResolver } from "eslint-import-resolver-typescript";
 import prettier from "eslint-config-prettier";
 import globals from "globals";
 
+// M8 : packages/domain doit rester pur — aucune dépendance de production n'y est déclarée
+// (`packages/domain/package.json` n'a pas de champ `dependencies`). Cette liste est une défense en
+// profondeur au niveau lint (en plus de l'absence de dépendance déclarée) contre les frameworks et
+// les SDK d'infrastructure qui pourraient être importés par erreur via un paquet transitif du
+// monorepo (résolution de module Node, pas de sandbox runtime).
 const FRAMEWORK_IMPORTS_FORBIDDEN_IN_DOMAIN = [
   "@nestjs",
   "@nestjs/*",
@@ -21,6 +27,12 @@ const FRAMEWORK_IMPORTS_FORBIDDEN_IN_DOMAIN = [
   "react",
   "react-dom",
   "react/*",
+  // M8 (lot L01) : futurs fournisseurs d'infrastructure — base de données, files d'attente, stockage.
+  "pg",
+  "pg/*",
+  "bullmq",
+  "bullmq/*",
+  "@aws-sdk/*",
 ];
 
 export default tseslint.config(
@@ -44,6 +56,12 @@ export default tseslint.config(
     },
     plugins: {
       "import-x": importX,
+    },
+    settings: {
+      // H1 : résolveur TypeScript (extensions .ts/.tsx/.js, chemins relatifs, exports de paquet)
+      // — sans lui, `import-x/no-restricted-paths` ignore silencieusement tout import non résolu
+      // (voir audit-1.md, constat H1).
+      "import-x/resolver-next": [createTypeScriptImportResolver({ alwaysTryTypes: true })],
     },
     rules: {
       // AC-L00-08 : une app n'importe jamais une autre app ; un paquet n'importe jamais une app.
@@ -91,6 +109,15 @@ export default tseslint.config(
           ],
         },
       ],
+      // M8 : `import()` dynamique interdit dans packages/domain (contournerait la liste
+      // d'autorisation ci-dessus en dissimulant le nom du module importé dans une expression).
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "ImportExpression",
+          message: "packages/domain doit rester pur : import() dynamique interdit (ADR 0001).",
+        },
+      ],
     },
   },
   // NOTE (écart documenté dans le rapport d'implémentation) : l'intégration `eslint-config-next`
@@ -119,7 +146,14 @@ export default tseslint.config(
   {
     // Fichiers de configuration d'outillage et e2e, hors du `include` des tsconfig de paquet :
     // lint syntaxique (pas de vérification de types via le project service TypeScript).
-    files: ["**/*.config.{ts,mts,cts}", "e2e/**/*.ts", "apps/api/test/**/*.ts"],
+    // `__lint-fixtures__` (H1) : fixtures de test des frontières, volontairement exclues des
+    // tsconfig de paquet (voir `tools/eslint-boundaries.test.mjs`) — mêmes raisons.
+    files: [
+      "**/*.config.{ts,mts,cts}",
+      "e2e/**/*.ts",
+      "apps/api/test/**/*.ts",
+      "**/__lint-fixtures__/**/*.ts",
+    ],
     ...tseslint.configs.disableTypeChecked,
   },
   prettier,

@@ -1,29 +1,19 @@
-import { FastifyAdapter } from "@nestjs/platform-fastify";
-import { Test } from "@nestjs/testing";
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { AppModule } from "../src/app.module.js";
-import { registerCorrelationId } from "../src/common/correlation/correlation.js";
-import { GlobalExceptionFilter } from "../src/common/filters/http-exception.filter.js";
+import { createApp } from "../src/app.js";
 import { loadConfig } from "../src/config/env.schema.js";
 
 /**
  * Intégration légère (plan de test §9) : démarrage de l'API avec l'adaptateur Fastify réellement
  * injecté (via `app.inject`, sans ouvrir de port réseau) — /health/*, en-tête de corrélation, 404 standard.
+ * Utilise `createApp` (M5, audit-1.md) : même bootstrap que `main.ts`, pas de recâblage manuel.
  */
 describe("API (intégration légère, Fastify injecté)", () => {
   let app: NestFastifyApplication;
 
   beforeAll(async () => {
     const config = loadConfig({ NODE_ENV: "test" });
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppModule.register(config)],
-    }).compile();
-
-    const adapter = new FastifyAdapter();
-    app = moduleRef.createNestApplication<NestFastifyApplication>(adapter);
-    registerCorrelationId(adapter.getInstance());
-    app.useGlobalFilters(new GlobalExceptionFilter());
+    app = await createApp(config);
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
   });

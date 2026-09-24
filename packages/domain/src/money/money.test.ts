@@ -16,6 +16,14 @@ describe("money", () => {
     expect(() => money(100, "chf")).toThrow(MoneyError);
     expect(() => money(100, "SWISS")).toThrow(MoneyError);
   });
+
+  it("refuse un entier non sûr (L2, au-delà de Number.MAX_SAFE_INTEGER)", () => {
+    expect(() => money(Number.MAX_SAFE_INTEGER + 2, "CHF")).toThrow(MoneyError);
+  });
+
+  it("accepte Number.MAX_SAFE_INTEGER exactement", () => {
+    expect(() => money(Number.MAX_SAFE_INTEGER, "CHF")).not.toThrow();
+  });
 });
 
 describe("add", () => {

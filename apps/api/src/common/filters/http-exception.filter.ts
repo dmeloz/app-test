@@ -53,7 +53,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     if (described.status >= HttpStatus.INTERNAL_SERVER_ERROR) {
       const stack = exception instanceof Error ? exception.stack : undefined;
-      this.logger.error({ correlationId, message: described.message }, stack);
+      // H2 : `correlationId` en paramètre structuré (fusionné au niveau racine du JSON par
+      // `ConsoleLogger({ json: true, flattenParams: true })`, voir `app.ts`) — jamais dans le
+      // message texte, pour rester exploitable par un agrégateur de logs.
+      this.logger.error(described.message, { correlationId }, stack);
     }
 
     const body: ErrorBody = {
@@ -68,6 +71,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   }
 
   private resolveCorrelationId(request: FastifyRequest | undefined): string {
+    if (request?.correlationId) {
+      return request.correlationId;
+    }
     const header = request?.headers[CORRELATION_ID_HEADER];
     if (typeof header === "string" && header.length > 0) {
       return header;
