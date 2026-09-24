@@ -28,12 +28,25 @@
   - `e20999a` — audit-1 : corrige L4 — poweredByHeader, titres i18n, lang backoffice testé (passe B2)
   - `6e6d12b` — audit-1 : corrige M2 — plugins Next natifs ciblés, règles typées (passe B2)
   - `a07c84a` — audit-1 : corrige M8 — packages/* en ESM natif, liste d'autorisation domain étendue (passe B2)
+  - `973be64` — L00 : audit 2 (CHANGES_REQUIRED) et arbitrage S3 de développement (SeaweedFS)
+  - `fba8082` — Garde-fous : règle .env générique (toute variante sauf modèles), tests étendus (N7, audit 2)
+  - `56b91f6` — audit-2 : corrige N1 (turbo.json api#test), H4 (SeaweedFS remplace LocalStack Pro), M1 (404 dynamiques, nonce CSP)
+  - `4367eb9` — Design : référence visuelle R1 (dashboard) analysée et reliée à la maquette P01 (hors périmètre L00)
+  - `e888cea` — audit-2 : corrige N4 (logs à liste d'autorisation), N5 (CLI gitleaks épinglée, historique complet), N6 (arrêt de pnpm dev), N8 (turbo du lockfile dans le Dockerfile)
+  - `b0a7db9` — audit-2 : corrige N9 (node:module/type import interdits en domain), N10 (vitest.config.mts), L5 (images épinglées par digest)
   - (commit de cette mise à jour du rapport à suivre)
 
 **Ce rapport a été corrigé après l'audit 1** (`docs/lots/L00-socle/audit-1.md`, verdict
 `CHANGES_REQUIRED`). Les passages ci-dessous marqués « (état à l'audit 1, corrigé) » décrivaient un
 comportement qui s'est révélé faux une fois rejoué sur clone propre — voir la section
 « Corrections audit 1 » en fin de document pour le détail commit → preuve.
+
+**Puis corrigé une seconde fois après l'audit 2 (contre-audit)** (`docs/lots/L00-socle/audit-2.md`,
+verdict `CHANGES_REQUIRED` : 2 HIGH — N1, H4 — et 4 MEDIUM — M1, N4, N5, R1). Voir la section
+« Corrections audit 2 » en fin de document pour le détail commit → preuve de chaque constat (N1,
+H4, M1, N4, N5, N6, N7, N8, N9, N10, L5). **Cette mise à jour du rapport est elle-même la
+correction de R1** (ex-H7 : rapport d'implémentation contradictoire ou périmé sur plusieurs points
+— voir le détail des corrections apportées ci-dessous et la section « Écarts »).
 
 ## Périmètre reformulé
 
@@ -224,13 +237,20 @@ les autres.)
 
 ### `pnpm test` (AC-L00-02, AC-L00-07)
 
+**Rejoué réellement sur clone propre (`git clone /home/user/app-test`), sans build préalable, le
+2026-09-24, commit `b0a7db9`** (N1, audit-2.md : ce point précis était KO à l'audit 2 avant
+correctif — `turbo.json` ne surchargeait pas la bonne clé de paquet et `dist/` était absent) :
+
 ```text
-api:test:  Test Files  5 passed (5)
-api:test:       Tests  20 passed (20)
-@app/domain:test:  ✓ src/money/money.test.ts (7 tests) 7ms
+$ pnpm install --frozen-lockfile && pnpm test
+...
+api:test:  Test Files  8 passed (8)
+api:test:       Tests  33 passed (33)
+@app/domain:test:  ✓ src/money/money.test.ts (9 tests) 8ms
 storefront:test:  ✓ src/i18n/dictionary.test.ts (3 tests)
 backoffice:test:  ✓ src/i18n/dictionary.test.ts (3 tests)
  Tasks:    11 successful, 11 total
+Cached:    0 cached, 11 total
 ```
 
 `@app/contracts`, `@app/db`, `@app/i18n`, `@app/testing`, `@app/ui` : « No test files found,
@@ -316,6 +336,22 @@ EXIT_CODE=0
 Vérifié ensuite : `ps -eo pid,ppid,cmd | grep -i next-server` → aucun résultat (aucun processus
 résiduel après l'exécution).
 
+**Rejoué réellement sur clone propre le 2026-09-24 (commit `b0a7db9`, après les ajouts M1 —
+`not-found.spec.ts` — et `security-headers.spec.ts` des passes d'audit 2)** :
+
+```text
+$ timeout 600 pnpm test:e2e
+Running 13 tests using 2 workers
+  ✓ [chromium] › e2e/tests/not-found.spec.ts › storefront/backoffice — pages 404 (4 tests)
+  ✓ [chromium] › e2e/tests/pages.spec.ts › storefront/backoffice FR/EN (4 tests)
+  ✓ [chromium] › e2e/tests/security-headers.spec.ts › CSP et en-têtes (5 tests)
+  13 passed (5.6s)
+```
+
+`pgrep -fa next-server` (hors le processus du shell d'orchestration lui-même, qui matche
+trivialement la chaîne de sa propre commande) : aucun processus `next-server` réel résiduel
+(confirmé par `ps aux | grep -i next-server | grep -v grep`, sortie vide).
+
 ### `.claude/hooks/test-guards.sh` (AC-L00-12)
 
 ```text
@@ -330,23 +366,29 @@ ok   [2] /repo/.env
 (29 cas, tous « ok », code de sortie global 0)
 ```
 
+**Rejoué réellement sur clone propre le 2026-09-24 (commit `b0a7db9`)**, après N7 (règle `.env`
+générique — commit `fba8082`, couvre désormais toute variante `.env.*` sauf les modèles
+`.env.example`/`.env.sample`/`.env.template`, plus des cas ajoutés au fil des audits) : **31 cas,
+tous « ok », code de sortie global 0** (sortie complète reproduite dans « Corrections audit 2 »,
+entrée N7).
+
 ## Statut détaillé des critères d'acceptation
 
 | AC | Statut | Détail |
 |---|---|---|
 | AC-L00-01 | **OK** | `pnpm install` réussit, lockfile commité. `--frozen-lockfile` non rejoué tel quel après le tout dernier ajustement (voir ci-dessus) — à confirmer en CI. |
 | AC-L00-02 | **OK** | format:check, lint, typecheck, test, build tous verts (sorties ci-dessus). |
-| AC-L00-03 | **KO probable, ouvert (H4, passe B)** | Docker présent mais le démon (`docker ps`/build réel) est bloqué par le classificateur de sécurité de l'environnement (« Containment Escape »). L'audit 1 a par ailleurs constaté que l'image MinIO épinglée (`compose.yaml:47`) est **introuvable sur Docker Hub** (`object not found`) et que son healthcheck utilise `curl`, absent de cette image. **Non corrigé dans cette passe** (hors périmètre confié) — reste pour la passe B. |
+| AC-L00-03 | **Non vérifié dans cette session (démon Docker indisponible dans le bac à sable)** | `infra/docker/compose.yaml` déclare PostgreSQL, Redis, Mailpit et SeaweedFS (S3, remplace MinIO puis LocalStack Pro — voir « Corrections audit 2 », H4), toutes les images épinglées par tag **et par digest** (L5). `docker compose -f infra/docker/compose.yaml config` réussit (EXIT=0) sur cette session, mais `docker compose up -d --wait` (4 services healthy) n'a jamais été exécuté faute de démon Docker disponible — **à confirmer par un humain ou par la CI avant fusion** (voir « Reste à confirmer »). |
 | AC-L00-04 | **OK** | Vérifié à la fois par test d'intégration légère (`app.inject`) et par un vrai `curl` sur le binaire buildé (voir ci-dessus, rejoué le 2026-09-24). |
 | AC-L00-05 | **OK** | Tests unitaires `env.schema.test.ts` : `NODE_ENV` manquant ou invalide lève `ConfigValidationError` ; message ne contient jamais la valeur fournie (assertion explicite `not.toContain`). |
 | AC-L00-06 | **OK, corrigé (H2, commit `d22df13`)** | **À l'audit 1 : KO** — aucun log de requête ne portait `correlationId`, logs Nest en texte. Corrigé : `FastifyAdapter` avec `genReqId`/`requestIdLogLabel`, `ConsoleLogger` Nest en JSON. Rejoué le 2026-09-24 sur le binaire buildé : chaque ligne « incoming request »/« request completed » est un JSON valide avec `correlationId` (voir « Démarrage réel de l'API buildée » ci-dessus). |
-| AC-L00-07 | **OK** | `packages/domain/src/money/money.test.ts` : `add(1000, "CHF") + (250, "CHF") = 1250n` ; CHF+EUR lève `MoneyError` ; montant non entier refusé. 9 tests verts (2 ajoutés pour L2 : `Number.isSafeInteger`). |
-| AC-L00-08 | **OK, corrigé (H1, commit `f539d2d`)** | **À l'audit 1 : KO** — `import-x/no-restricted-paths` n'avait aucun résolveur TypeScript et ignorait silencieusement tout import `.ts` non résolu (0 erreur sur 7 sondes). Corrigé : résolveur `eslint-import-resolver-typescript`, fixtures commitées, test `tools/eslint-boundaries.test.mjs` (10 cas). Rejoué le 2026-09-24 : 10/10 verts, y compris une contre-épreuve manuelle (import `@nestjs/core` dans `packages/domain/src/money/money.ts` → 2 erreurs `no-restricted-imports`, fichier restauré immédiatement, `git status` propre après coup). |
-| AC-L00-09 | **OK** | `pnpm test:e2e` : 4/4 tests verts, exit 0, aucun processus résiduel (voir ci-dessus pour l'historique du correctif). |
-| AC-L00-10 | **Partiellement corrigé (H5/M6/L6, commit `67805c8`), non vérifié sur un run GitHub Actions réel** | `permissions: contents: read` ajouté au niveau workflow, `fetch-depth: 0` sur `actions/checkout` (requis par gitleaks pour scanner l'historique), actions épinglées par SHA de commit (tag en commentaire, SHA obtenus via `git ls-remote` sur les dépôts amont), `pnpm audit --prod --audit-level=critical` désormais bloquant (plus de `\|\| true`), `node-version-file: .nvmrc`, étape `pnpm test:lint-boundaries` ajoutée. YAML validé (`python3 -c "import yaml..."`, EXIT=0). **Non vérifié** : aucun run GitHub Actions déclenché depuis cet environnement (pas de push) ; `GITLEAKS_LICENSE` non ajouté (repo personnel, pas une organisation à ce jour) — à revoir si le dépôt devient une organisation. **À confirmer à la première PR réelle.** |
-| AC-L00-11 | **Non vérifié localement, ouvert (H3, passe B)** | `infra/docker/api.Dockerfile` écrit mais jamais construit dans cette session (bac à sable). L'audit 1 a de plus constaté que le build échoue après `turbo prune` (`TS5083: Cannot read file '.../tsconfig.base.json'`) car ce fichier n'est pas copié dans le stage builder. **Non corrigé dans cette passe** (hors périmètre confié) — reste pour la passe B. |
-| AC-L00-12 | **OK** | `.claude/hooks/test-guards.sh` : 29 cas, tous corrects, code 0. |
-| AC-L00-13 | **OK** | `bonjour.html` inchangé (un reformattage accidentel par `prettier --write .` a été détecté et **annulé** via `git restore` avant tout commit ; `bonjour.html` et `docs/**` sont désormais dans `.prettierignore` pour ne plus jamais être touchés par ce lot). |
+| AC-L00-07 | **OK** | `packages/domain/src/money/money.test.ts` : `add(1000, "CHF") + (250, "CHF") = 1250n` ; CHF+EUR lève `MoneyError` ; montant non entier refusé. **Rejoué sur clone propre le 2026-09-24 (commit `b0a7db9`)** : 9 tests verts. |
+| AC-L00-08 | **OK, corrigé (H1, commit `f539d2d`), étendu (N9, commit `b0a7db9`)** | **À l'audit 1 : KO** — `import-x/no-restricted-paths` n'avait aucun résolveur TypeScript et ignorait silencieusement tout import `.ts` non résolu. Corrigé : résolveur `eslint-import-resolver-typescript`, fixtures commitées, `tools/eslint-boundaries.test.mjs`. **N9 (audit-2.md)** : `packages/domain` pouvait encore contourner la liste d'autorisation via `node:module`/`createRequire` ou le type `import("...")` (`TSImportType`, non capté par `ImportExpression`) — les deux sont désormais interdits par `no-restricted-imports`/`no-restricted-syntax`, avec fixtures dédiées. `pnpm test:lint-boundaries` rejoué sur clone propre le 2026-09-24 : **17/17 verts** (dont les 2 nouveaux cas N9), y compris la contre-épreuve. |
+| AC-L00-09 | **OK** | `pnpm test:e2e` rejoué sur clone propre le 2026-09-24 (commit `b0a7db9`, inclut aussi M1) : **13/13 tests verts**, exit 0, aucun processus résiduel (`ps aux \| grep next-server` vide). |
+| AC-L00-10 | **Corrigé (N5, commit `e888cea`) ; non vérifié sur un run GitHub Actions réel** | `permissions: contents: read` au niveau workflow, `fetch-depth: 0` sur `actions/checkout`, actions épinglées par SHA de commit, `pnpm audit --prod --audit-level=critical` bloquant, `node-version-file: .nvmrc`, `pnpm test:lint-boundaries` en CI. **N5 (audit-2.md)** : `gitleaks/gitleaks-action` interrogeait l'API GitHub des commits d'une PR, non paginée (30 commits max) — remplacé par la CLI officielle `gitleaks` v8.30.1, épinglée par somme SHA-256 vérifiée manuellement, exécutée directement sur l'historique complet du clone (`gitleaks detect --source .`, sans dépendre d'une liste de commits fournie par une API tierce). YAML validé. **Non vérifié** : aucun run GitHub Actions déclenché depuis cet environnement (pas de push) ; démonstration sur un secret factice non faite. **À confirmer à la première PR réelle** (voir « Reste à confirmer »). |
+| AC-L00-11 | **Non vérifié dans cette session (démon Docker indisponible)** | `infra/docker/api.Dockerfile` écrit, relu, et le job CI `docker-api` (`build` + exécution non-root + `/health/live`, `needs: ci`) est en place depuis l'audit 1 — mais aucun `docker build` réel n'a été exécuté dans ce bac à sable à aucune passe de ce lot. Images `node:24.21.0-alpine` désormais épinglées par digest en plus du tag (L5). **À confirmer par un humain ou par la CI avant fusion** (voir « Reste à confirmer »). |
+| AC-L00-12 | **OK** | `.claude/hooks/test-guards.sh` rejoué sur clone propre le 2026-09-24 (commit `b0a7db9`) : 31 cas, tous corrects (`ok`), code de sortie global 0. |
+| AC-L00-13 | **Sans objet** | `bonjour.html` a été **retiré du dépôt à la demande explicite du porteur** le 2026-09-24 (voir `CLAUDE.md`, section « État du projet » : « L'ancien fichier de test `bonjour.html` a été retiré... le dépôt est entièrement dédié à ce SaaS »). Ce critère, qui portait sur la préservation de ce fichier, n'a donc plus d'objet ; il ne s'agit pas d'un échec ni d'une suppression non autorisée par l'agent. |
 
 ## Corrections audit 1
 
@@ -380,40 +422,77 @@ sortie, pas une citation de mémoire).
 | **M2** — couverture lint Next insuffisante, règles typées non activées | `6e6d12b` | `eslint.config.mjs` : `@next/eslint-plugin-next`, `eslint-plugin-react-hooks`, `eslint-plugin-jsx-a11y` utilisés **directement** (config native flat vérifiée dans `node_modules/eslint-config-next/dist/index.js` : `module.exports = [...]`, sans `@eslint/eslintrc`/FlatCompat) plutôt que le paquet agrégé `eslint-config-next` (qui embarque `eslint-plugin-import` et son propre résolveur, en conflit avec `eslint-plugin-import-x` déjà utilisé pour H1 — approche explicitement recommandée par la doc Next 16 dans ce cas, section « Migrating existing config → Using the plugin directly »). Scope strict `apps/storefront/**/*.{ts,tsx}` + `apps/backoffice/**/*.{ts,tsx}` (vérifié : `pnpm lint` sans avertissement `no-html-link-for-pages` une fois `settings.next.rootDir` ajouté par app). `@typescript-eslint/no-floating-promises`/`no-misused-promises` passées à `"error"` sur `**/*.{ts,tsx}` (project service). Fixtures `apps/storefront/src/__lint-fixtures-typed__/{img-element.tsx,floating-promise.ts}` (fichiers TypeScript valides, contrairement aux fixtures H1/M8 — restent dans le graphe type-aware normal). Preuve : `pnpm test:lint-boundaries` → **15/15 verts** (dont les 2 nouveaux cas : `@next/next/no-img-element` severity 1, `@typescript-eslint/no-floating-promises` severity 2) ; `pnpm lint` EXIT=0 sans avertissement ; `pnpm typecheck`/`build`/`test` 10/10 verts ; aucune violation trouvée dans le code applicatif réel (aucun `<img>`, aucune promesse flottante). |
 | **M8** — risques structurels pour L01 (ESM des paquets, liste d'autorisation domain) | `a07c84a` | `packages/{config,contracts,db,domain,i18n,testing,ui}/package.json` : `"type": "module"` + `exports` (`types` en premier). Sortie `dist/` vérifiée réellement ESM après rebuild (`cat packages/config/dist/index.js` → `export {};`, plus de wrapper `"use strict"; Object.defineProperty(exports, ...)`). `packages/domain/src/{index.ts,money/money.test.ts}` : imports relatifs avec extension `.js` explicite (requis par `module: "node16"` en mode ESM strict, même convention qu'`apps/api`). **Interopérabilité réelle prouvée** (non committée) : (1) symlink `apps/api/node_modules/@app/domain` → `packages/domain` (simulation d'un lien pnpm), `node --input-type=module -e "import('@app/domain')..."` depuis `apps/api` → résolu, `add(10.00 CHF, 2.50 CHF) = 1250 CHF`. (2) même symlink côté `apps/storefront`, import temporaire dans `page.tsx`, `pnpm --filter storefront build` (Turbopack) → sortie de build réelle : `M8 verification: 1250 CHF` pendant le prerender — aucune incompatibilité ESM/bundler Next. Les deux symlinks et le fichier temporaire ont été retirés après vérification (`git status --short` propre). `eslint.config.mjs` : ajoute `postgres`/`postgres/*` aux motifs interdits (manquant ; `ioredis`/`stripe` déjà présents mais sans fixture) ; `packages/domain/src/__lint-fixtures__/imports-{postgres,ioredis,stripe}.ts` (nouveau) + 3 cas dans `tools/eslint-boundaries.test.mjs` → **15/15 verts** (les six motifs du constat ont chacun une fixture testée). `packages/domain/package.json` toujours sans `dependencies`. |
 
-### Reste ouvert (hors périmètre de cette passe B2)
+### Reste ouvert après la passe B2 (audit 1) — **périmé, voir « Corrections audit 2 » ci-dessous**
 
-- **H4** — image MinIO introuvable sur Docker Hub, healthcheck `curl` absent de l'image.
-- **L5 (reste)** — images Docker épinglées par tag et non par digest, patch postgres ancien
-  (la partie `.dockerignore`/`.env*` est corrigée, voir table ci-dessus).
-- Nouvelle observation signalée ci-dessus (plantage natif de `node --watch` sur double signal
-  d'arrêt en mode dev) : à investiguer, non bloquant pour H6/M4 (le mode dev démarre et sert du
-  trafic correctement).
-- **Docker build réel** (image `api`, job CI `docker-api`) toujours non exécuté dans ce bac à sable
-  (démon bloqué) — la simulation M7 hors Docker ne remplace pas un `docker build` réel ; à confirmer
-  en CI ou par un humain avant fusion (cf. AC-L00-03/AC-L00-11, Question ouverte 4).
-- **Constat signalé (hors des 5 constats de cette passe, non corrigé)** : `pnpm test` (apps
-  `storefront`/`backoffice`) affiche un avertissement Vitest/Vite : « ESM syntax in a file loaded as
-  CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest
-  package.json ». **Confirmé pré-existant** (reproduit à l'identique sur un arbre de travail Git
-  isolé au commit `9373be0`, avant tout correctif de cette passe B2) — non introduit par M7/M1/L4/
-  M2/M8. N'affecte pas le résultat des tests (toujours verts). Signalé pour une passe ultérieure.
+Cette sous-section listait, à l'issue de la passe B2 (audit 1), les points suivants : H4 (image
+MinIO introuvable), L5 (digests), le plantage natif de `node --watch` en mode dev, le build Docker
+réel jamais exécuté, et l'avertissement Vitest/Vite ESM-dans-CommonJS. **Tous ces points ont été
+repris et traités par l'audit 2** (`docs/lots/L00-socle/audit-2.md`) sous les identifiants H4, L5,
+N6, N10 (build Docker réel : toujours non exécuté, voir « Reste à confirmer par la CI ou un
+humain » ci-dessous) — voir le détail commit → preuve dans « Corrections audit 2 ». Cette
+sous-section est conservée uniquement pour l'historique et ne doit plus être lue comme une liste
+d'écarts actuels.
+
+## Corrections audit 2
+
+Suite au verdict `CHANGES_REQUIRED` de `docs/lots/L00-socle/audit-2.md` (contre-audit rejoué sur
+clone propre par `auditor-opus`), les correctifs suivants ont été appliqués sur cette branche.
+Chaque preuve ci-dessous a été **rejouée réellement sur un clone propre le 2026-09-24**
+(`git clone /home/user/app-test <scratchpad>/r1-clone`, Node 24.21.0, pnpm 12.6.0), sauf mention
+contraire explicite.
+
+| Constat | Commit | Preuve (rejouée le 2026-09-24 sur clone propre) |
+|---|---|---|
+| **N1 (HIGH)** — `turbo.json` surchargeait la clé `apps/api#test` (paquet nommé `api`), ignorée : `pnpm test` échouait sur clone propre avant tout build (`dist/` absent) | `56b91f6` | Clé corrigée en `api#test` avec `dependsOn: ["^build", "build"]`. `pnpm install --frozen-lockfile && pnpm test` sur clone propre, **sans build préalable** : `Tasks: 11 successful, 11 total` ; `api:test` → `Test Files 8 passed (8)`, `Tests 33 passed (33)`. |
+| **H4 (HIGH)** — `localstack/localstack:2026.08.4` était en réalité l'image LocalStack **Pro** (dépôt communautaire archivé, compte requis) | `56b91f6` | Remplacée par `chrislusf/seaweedfs:4.47` (Apache-2.0, sans compte), sur arbitrage du fil principal (voir `audit-2.md`). Tag, digest, commande (`mini -dir=/data`) et présence du binaire `curl` pour le healthcheck vérifiés via l'API du registre Docker et le Dockerfile source amont, documentés dans `docs/architecture/self-hosting.md`. `docker compose -f infra/docker/compose.yaml config` → EXIT=0 (démon Docker toujours indisponible pour `up`, voir « Reste à confirmer »). |
+| **M1 (MEDIUM, partiel)** — pages 404 prérendues sans nonce CSP (14 erreurs console/CSP) | `56b91f6` | `app/global-not-found.tsx` (`experimental.globalNotFound`) et `app/not-found.tsx`, rendus dynamiquement (`connection()`). `e2e/tests/not-found.spec.ts` : `/fr/inexistant` et `/xx`, les deux apps → 4 tests. `pnpm test:e2e` sur clone propre : **13/13 verts** (voir « Commandes exécutées » ci-dessus), 0 erreur console/CSP. |
+| **N4 (MEDIUM)** — logs de requête contenant la query string, l'IP et le host, sans liste d'autorisation | `e888cea` | `apps/api/src/app.ts` : sérialiseur `req` explicite (`{ method, url: url.split("?")[0] }`), ni `host` ni `remoteAddress`/`remotePort`. `apps/api/test/logging.integration.test.ts` (nouveau) vérifie qu'un `?token=secret` n'apparaît dans aucun log. `pnpm test` (api, clone propre) : 33/33 verts, y compris ce test. |
+| **N5 (MEDIUM)** — `gitleaks-action` ne scanne que les 30 premiers commits d'une PR (API GitHub non paginée) | `e888cea` | `.github/workflows/ci.yml` : CLI `gitleaks` v8.30.1 téléchargée et vérifiée par somme SHA-256 (`gitleaks_8.30.1_checksums.txt` de la release officielle), exécutée avec `gitleaks detect --source . --redact` sur l'historique complet (`actions/checkout` avec `fetch-depth: 0`), au lieu de l'action tierce. YAML validé. **Non rejoué en CI réelle** (pas de push) — voir « Reste à confirmer ». |
+| **N6 (LOW)** — `node --watch` provoquait une assertion native (`FSEventWrap::GetInitialized`) à l'arrêt en mode `pnpm dev` | `e888cea` | `apps/api/scripts/dev.mjs` réécrit : abandon de `node --watch`, remplacé par `fs.watch(dist/, { recursive: true })` géré par le script lui-même (spawn/kill classiques du process applicatif, jamais de mode `--watch` natif). Non rejoué manuellement dans cette passe (hors de la liste des commandes R1) — comportement inchangé depuis le commit, `pnpm typecheck`/`lint`/`test` restent verts. |
+| **N7 (LOW)** — la liste deny des `.env` procédait par énumération (`.env.dev`, `.env.backup`… non couverts) | `fba8082` | `.claude/hooks/guard-bash.sh` : motif générique bloquant toute variante `.env.*` sauf `.env.example`/`.env.sample`/`.env.template` (au lieu d'une énumération de suffixes). `.claude/hooks/test-guards.sh` rejoué sur clone propre : **31/31 cas « ok »**, code de sortie global 0. |
+| **N8 (LOW)** — `npx --yes turbo@2.11.3` dans le Dockerfile, hors lockfile | `e888cea` | `infra/docker/api.Dockerfile`, stage `pruner` : `RUN pnpm install --frozen-lockfile` puis `RUN pnpm exec turbo prune api --docker` (binaire `turbo` déjà verrouillé par `pnpm-lock.yaml`, aucun accès au registre npm hors lockfile). Non rejoué par un `docker build` réel dans cette passe (démon indisponible, voir « Reste à confirmer ») ; syntaxe du Dockerfile relue. |
+| **N9 (LOW)** — `createRequire`/`node:module` et le type `import("...")` (`TSImportType`) non interdits dans `packages/domain`, contournant la liste d'autorisation M8 | `b0a7db9` | `eslint.config.mjs` : nouveau motif `no-restricted-imports` sur `["node:module", "module"]` et nouveau sélecteur `no-restricted-syntax` sur `TSImportType`. Fixtures `packages/domain/src/__lint-fixtures__/{imports-node-module.ts,type-import.ts}` + 2 cas dans `tools/eslint-boundaries.test.mjs`. `pnpm test:lint-boundaries` sur clone propre : **17/17 verts**. |
+| **N10 (LOW)** — avertissement Vite « ESM syntax in a file loaded as CommonJS » sur `apps/{storefront,backoffice}/vitest.config.ts` | `b0a7db9` | Cause identifiée : ces deux apps n'ont pas `"type": "module"` dans leur `package.json` (contrairement à tous les `packages/*`), donc `vitest.config.ts` y est chargé comme CommonJS par défaut. `vitest.config.ts` renommé en `vitest.config.mts` dans les deux apps (Vitest le détecte automatiquement, aucun script à modifier). `pnpm --filter storefront test` et `pnpm --filter backoffice test` sur clone propre : 3/3 verts chacun, **aucun avertissement** dans la sortie. |
+| **L5** — images Docker épinglées par tag mais pas par digest (`postgres`, `redis`, `mailpit`, `node`) | `b0a7db9` | Digests obtenus **réellement** via l'API Docker Hub (`GET /v2/repositories/<ns>/tags/<tag>`, champ `digest`, interrogée le 2026-09-24) : `postgres:16.15-alpine`, `redis:7.4-alpine`, `axllent/mailpit:v1.20.7`, `node:24.21.0-alpine` (base et runtime du Dockerfile `api`) — tag conservé dans chaque cas, digest ajouté après `@sha256:...`. `chrislusf/seaweedfs:4.47` était déjà épinglé par digest depuis `56b91f6` (H4). `docker compose -f infra/docker/compose.yaml config` → EXIT=0. |
+| **R1 (MEDIUM, ex-H7)** — rapport d'implémentation contradictoire (H4, AC-11, écart 6, AC-13, nombre de tests) | *(ce commit)* | Cette mise à jour du rapport : tableau des AC corrigé (AC-03, AC-10, AC-11 reformulés sans mention de LocalStack/MinIO périmée ; AC-13 « sans objet », `bonjour.html` retiré à la demande du porteur) ; section « Corrections audit 2 » (ce tableau) ; section « Reste à confirmer par la CI ou un humain » (ci-dessous) ; nombres de tests mis à jour partout où ils étaient cités (33 api, 9 domain, 3+3 storefront/backoffice, 13 e2e, 17 lint-boundaries, 31 test-guards) ; écart 6 (« CI ne construit pas l'image Docker ») retiré car périmé (le job `docker-api` existe depuis l'audit 1, `1a4d06e`/`6f1d6ec`). Toutes les commandes de cette liste ont été rejouées sur un clone propre, pas seulement relues. |
 
 ## Tests non exécutés et raison
 
 - **`pnpm test:int`, `pnpm test:tenancy`** : n'existent pas encore — explicitement prévus au lot L01
   par la spec (§ Commandes de `CLAUDE.md` et §2 de la spec L00 : « documentés comme introduits au
   L01 »). Aucune omission.
-- **Démonstration gitleaks sur secret factice (AC-L00-10)** : non exécutée (nécessite un push
-  déclenchant réellement le workflow GitHub Actions, hors de portée d'une session locale sans accès
-  au dépôt distant pour ce test précis, et le temps restant ne le permettait pas). Le workflow est
-  écrit avec l'étape gitleaks activée ; il reste à confirmer sur la première PR réelle.
-- **Build et exécution réelle de l'image Docker `api` (AC-L00-11) et `docker compose up`
-  (AC-L00-03)** : bloqués par la politique de bac à sable de cet agent (voir ci-dessus). Ni
-  contournés, ni simulés : signalés comme non vérifiés.
-- **`pnpm install --frozen-lockfile` en toute fin de session** : le dernier ajustement (correctif
-  e2e) n'a pas modifié de dépendances, mais l'option `--frozen-lockfile` strico sensu n'a pas été
-  rejouée après ce dernier commit faute de tour ; `pnpm install` (sans l'option) confirme
-  « Already up to date ».
+- **Démonstration gitleaks sur secret factice (AC-L00-10)** : non exécutée, nécessite un push
+  déclenchant réellement le workflow GitHub Actions — voir « Reste à confirmer par la CI ou un
+  humain » ci-dessous.
+- **Build et exécution réelle de l'image Docker `api` (AC-L00-11) et `docker compose up -d --wait`
+  (AC-L00-03)** : le démon Docker n'est pas exploitable dans ce bac à sable (confirmé de nouveau
+  dans cette passe : `docker info` échoue). Ni contournés, ni simulés au-delà de
+  `docker compose config` (validation syntaxique uniquement, EXIT=0) et `pnpm exec` normal — voir
+  « Reste à confirmer par la CI ou un humain » ci-dessous.
+- **`cp .env.example .env && pnpm dev`** : non rejoué dans cette passe (`.env.example` existe et
+  est lisible, mais démarrer `pnpm dev` en tâche de fond et le laisser tourner sort du périmètre
+  des commandes listées pour cette passe R1) — voir « Reste à confirmer par la CI ou un humain ».
+
+## Reste à confirmer par la CI ou un humain avant fusion
+
+Ces points ne peuvent pas être vérifiés dans le bac à sable de cet agent (pas de démon Docker, pas
+de déclenchement réel de GitHub Actions, pas de session interactive humaine) :
+
+1. **`docker build`** réel de `infra/docker/api.Dockerfile` (job CI `docker-api`, `needs: ci`) :
+   construction effective de l'image, exécution non-root (`uid != 0`), réponse `/health/live`.
+2. **`docker compose -f infra/docker/compose.yaml up -d --wait`** : les 4 services (PostgreSQL,
+   Redis, Mailpit, SeaweedFS/S3) doivent atteindre l'état `healthy` — la syntaxe est validée
+   (`docker compose config` → EXIT=0) mais l'exécution réelle des healthchecks (notamment le
+   healthcheck SeaweedFS sur `curl http://127.0.0.1:9333/healthz`, jamais testé en conditions
+   réelles) ne l'est pas.
+3. **Premier run CI réel** (`.github/workflows/ci.yml`) sur GitHub Actions : aucun push n'a été fait
+   depuis cet environnement ; le YAML est validé syntaxiquement mais jamais exécuté par le runner
+   réel.
+4. **Démonstration gitleaks** (AC-L00-10) : injecter un secret factice dans une branche/PR de test
+   et vérifier que la CLI `gitleaks` v8.30.1 (commit `e888cea`) le détecte et fait échouer le job.
+5. **`cp .env.example .env && pnpm dev`** exécuté par un humain (ou un agent disposant d'un accès
+   interactif prolongé) : démarrage des trois apps (`api`, `storefront`, `backoffice`) en mode
+   développement local, vérification visuelle/manuelle qu'elles répondent correctement ensemble.
 
 ## Écarts par rapport à la spec
 
@@ -457,11 +536,12 @@ sortie, pas une citation de mémoire).
    test ...` plutôt que de laisser Playwright construire les apps lui-même. Ajout des redirections
    `/` → `/fr` dans les deux apps Next (non prévu explicitement par la spec, mais cohérent avec
    « site public » et nécessaire pour fiabiliser `webServer.url`).
-6. **`.github/workflows/ci.yml` ne construit pas encore l'image Docker `api`** (pas d'étape
-   `docker build`/scan). La spec L00 exclut explicitement « déploiement, ... image scannée/SBOM »
-   du périmètre CI (§2 Exclu), donc ce n'est pas un manque par rapport à L00, mais cela veut dire
-   qu'**aucune vérification automatisée de `api.Dockerfile` n'existe encore nulle part** —
-   signalé pour que le porteur en soit conscient avant la fusion.
+6. ~~`.github/workflows/ci.yml` ne construit pas encore l'image Docker `api`~~ **Périmé, corrigé
+   depuis (audit 1, commits `1a4d06e`/`6f1d6ec`)** : le job `docker-api` (`ci.yml:99-140`) construit
+   réellement l'image, vérifie l'exécution non-root et `/health/live`, et ne s'exécute qu'après le
+   job `ci` (`needs: ci`). Reste non vérifié : l'exécution réelle de ce job sur un runner GitHub
+   Actions (aucun push depuis cet environnement) — voir « Reste à confirmer par la CI ou un
+   humain ». Écart conservé ici uniquement pour l'historique.
 7. **Node 24.21.0 non natif à cet environnement de développement** (voir « Choix techniques ») :
    toutes les commandes de vérification ont explicitement forcé ce PATH ; un développeur clonant le
    dépôt sur une machine avec `nvm`/Volta obtiendra automatiquement la bonne version via `.nvmrc`,
