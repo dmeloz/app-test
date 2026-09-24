@@ -14,7 +14,8 @@ record) ; la plateforme fournit la technologie. Marché initial : Suisse (FR/EN,
 
 - **Phase : gate 0 → 1 franchi le 2026-09-24** (cadrage validé). Seul le lot L00 est débloqué, et
   uniquement après validation de sa spec (`docs/lots/L00-socle/spec.md`). Voir `docs/process/gates.md`.
-- Le fichier `bonjour.html` à la racine est un test d'environnement existant : ne pas le supprimer.
+- L'ancien fichier de test `bonjour.html` a été retiré à la demande du porteur (2026-09-24) ; le dépôt
+  est entièrement dédié à ce SaaS.
 
 ## Décisions validées (résumé — détail dans `docs/product/scope-mvp.md` et les ADR)
 

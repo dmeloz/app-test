@@ -8,6 +8,5 @@ pnpm-lock.yaml
 **/test-results/**
 
 # Hors périmètre du lot L00 (contenu préexistant, non touché par ce lot) :
-bonjour.html
 docs/**
 .claude/agents/**
