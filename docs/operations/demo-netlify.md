@@ -15,7 +15,7 @@
 
 ## Procédure (à faire par le porteur, avec l'aide de Claude)
 
-1. Créer un compte Netlify (offre gratuite) et autoriser l'accès au dépôt GitHub `dmeloz/app-test`.
+1. ~~Créer un compte Netlify~~ — **le porteur a déjà un compte (2026-09-24).** Autoriser l'accès au dépôt GitHub `dmeloz/app-test`.
 2. Créer **un site par application** :
    - `storefront` : base directory `apps/storefront` ;
    - `backoffice` : base directory `apps/backoffice`.
