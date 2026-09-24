@@ -7,6 +7,9 @@ import importX from "eslint-plugin-import-x";
 import { createTypeScriptImportResolver } from "eslint-import-resolver-typescript";
 import prettier from "eslint-config-prettier";
 import globals from "globals";
+import nextPlugin from "@next/eslint-plugin-next";
+import reactHooksPlugin from "eslint-plugin-react-hooks";
+import jsxA11yPlugin from "eslint-plugin-jsx-a11y";
 
 // M8 : packages/domain doit rester pur — aucune dépendance de production n'y est déclarée
 // (`packages/domain/package.json` n'a pas de champ `dependencies`). Cette liste est une défense en
@@ -120,10 +123,6 @@ export default tseslint.config(
       ],
     },
   },
-  // NOTE (écart documenté dans le rapport d'implémentation) : l'intégration `eslint-config-next`
-  // via `@eslint/eslintrc` (FlatCompat) provoque une erreur ("Converting circular structure to
-  // JSON") avec ESLint 10 / eslint-config-next 16.3.6 dans cet environnement. Reporté à un lot
-  // ultérieur ; les règles de frontières et TypeScript strict restent actives sur les deux apps.
   {
     files: ["**/*.{js,mjs,cjs}"],
     ...tseslint.configs.disableTypeChecked,
@@ -141,8 +140,43 @@ export default tseslint.config(
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
+      // M2 (audit-1.md) : au minimum ces deux règles typées (parmi celles de
+      // `recommendedTypeChecked`) sur tous les fichiers couverts par le project service ci-dessus —
+      // une promesse rejetée non gérée (webhook, effet de bord asynchrone) ou un callback
+      // synchrone attendu recevant une fonction async sont des bugs réels, pas seulement du style
+      // (`.claude/rules/backend.md` : idempotence, webhooks signés/horodatés/dédupliqués).
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/no-misused-promises": "error",
     },
   },
+  // M2 (audit-1.md) : `eslint-config-next` complet embarque `eslint-plugin-import` et son propre
+  // résolveur (`import/resolver`), qui entreraient en conflit avec `eslint-plugin-import-x` déjà
+  // utilisé ci-dessus pour les frontières de modules (H1) — la doc Next 16 elle-même recommande
+  // d'utiliser les plugins directement dans ce cas précis (« Migrating existing config → Using the
+  // plugin directly », `next@16.3.6`, doc embarquée). Règles ciblées, limitées aux deux apps Next
+  // (pas `packages/*` ni `apps/api`) : `@next/next` (recommended), `react-hooks` (recommended),
+  // `jsx-a11y` (recommended). Remplace l'ancien écart documenté (`@eslint/eslintrc`/FlatCompat en
+  // erreur "Converting circular structure to JSON" avec ESLint 10 + eslint-config-next 16.3.6).
+  ...["storefront", "backoffice"].map((app) => ({
+    files: [`apps/${app}/**/*.{ts,tsx}`],
+    plugins: {
+      "@next/next": nextPlugin,
+      "react-hooks": reactHooksPlugin,
+      "jsx-a11y": jsxA11yPlugin,
+    },
+    settings: {
+      // `@next/next/no-html-link-for-pages` (et les autres règles qui inspectent le répertoire de
+      // pages) cherchent par défaut `pages/`/`src/pages` à la racine du dépôt — inexistant ici
+      // (App Router, monorepo). `rootDir` pointe la règle vers la vraie racine de chaque app (doc
+      // Next 16, « Specifying a root directory within a monorepo »).
+      next: { rootDir: `apps/${app}/` },
+    },
+    rules: {
+      ...nextPlugin.configs.recommended.rules,
+      ...reactHooksPlugin.configs.recommended.rules,
+      ...jsxA11yPlugin.flatConfigs.recommended.rules,
+    },
+  })),
   {
     // Fichiers de configuration d'outillage et e2e, hors du `include` des tsconfig de paquet :
     // lint syntaxique (pas de vérification de types via le project service TypeScript).

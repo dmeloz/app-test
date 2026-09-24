@@ -64,11 +64,24 @@ const CASES = [
     ruleId: "no-restricted-syntax",
     label: "packages/domain → import() dynamique (M8)",
   },
+  {
+    file: "apps/storefront/src/__lint-fixtures-typed__/img-element.tsx",
+    ruleId: "@next/next/no-img-element",
+    label: "storefront → <img> brut (M2)",
+    // Sévérité du preset `recommended` de `@next/eslint-plugin-next` (avertissement, pas bloquant
+    // au lot L00 — pas de règle Core Web Vitals durcie demandée par la spec de ce lot).
+    severity: 1,
+  },
+  {
+    file: "apps/storefront/src/__lint-fixtures-typed__/floating-promise.ts",
+    ruleId: "@typescript-eslint/no-floating-promises",
+    label: "storefront → promesse non attendue (M2)",
+  },
 ];
 
 describe("Frontières ESLint (H1) — fixtures commitées, config réelle", () => {
-  for (const { file, ruleId, label } of CASES) {
-    it(`${label} : ${ruleId} (severity 2)`, async () => {
+  for (const { file, ruleId, label, severity = 2 } of CASES) {
+    it(`${label} : ${ruleId} (severity ${severity})`, async () => {
       const eslint = new ESLint({
         cwd: ROOT_DIR,
         // Ignore les commentaires eslint-disable des fixtures : on veut voir la vraie violation.
@@ -83,7 +96,11 @@ describe("Frontières ESLint (H1) — fixtures commitées, config réelle", () =
         match,
         `attendu une erreur ${ruleId} sur ${file}, obtenu : ${JSON.stringify(result.messages)}`,
       );
-      assert.equal(match.severity, 2, `${ruleId} sur ${file} doit être une erreur (severity 2)`);
+      assert.equal(
+        match.severity,
+        severity,
+        `${ruleId} sur ${file} doit avoir la sévérité ${severity}`,
+      );
     });
   }
 
