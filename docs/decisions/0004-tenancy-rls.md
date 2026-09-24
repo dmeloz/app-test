@@ -1,6 +1,6 @@
 # ADR 0004 — Multi-tenancy : schéma partagé, `tenant_id`, RLS forcée
 
-- **Statut** : Proposé · **Date** : 2026-09-24
+- **Statut** : Accepté (validé par le porteur le 2026-09-24) · **Date** : 2026-09-24
 
 ## Contexte
 Isolation stricte exigée, dizaines puis centaines de tenants, coût minimal, auto-hébergement.

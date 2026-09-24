@@ -1,6 +1,6 @@
 # Backlog ordonné — 30 premiers jours
 
-> Statut : PROPOSÉ. Hypothèse temps plein. Les tâches **[H]** sont humaines (non délégables à Claude).
+> Statut : VALIDÉ par le porteur le 2026-09-24. Hypothèse temps plein. Les tâches **[H]** sont humaines (non délégables à Claude).
 
 ## Semaine 1 — Validation et vérifications
 1. **[H]** Relire et valider `scope-mvp.md`, les ADR 0001–0010 et 0013–0015, `open-decisions.md`.

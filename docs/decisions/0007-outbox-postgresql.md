@@ -1,6 +1,6 @@
 # ADR 0007 — Traitements asynchrones : outbox PostgreSQL
 
-- **Statut** : Proposé · **Date** : 2026-09-24
+- **Statut** : Accepté (validé par le porteur le 2026-09-24) · **Date** : 2026-09-24
 
 ## Contexte
 E-mails, impressions, notifications temps réel, intégrations et traitement des webhooks doivent être

@@ -1,6 +1,6 @@
 # ADR 0006 — États opérationnel et financier de la commande séparés
 
-- **Statut** : Proposé · **Date** : 2026-09-24
+- **Statut** : Accepté (validé par le porteur le 2026-09-24) · **Date** : 2026-09-24
 
 ## Contexte
 La liste d'états du prompt maître mélange cycle opérationnel (`IN_PREPARATION`, `READY`…) et financier

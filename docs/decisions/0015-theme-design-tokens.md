@@ -1,6 +1,6 @@
 # ADR 0015 — Personnalisation par design tokens, sans fork
 
-- **Statut** : Proposé · **Date** : 2026-09-24
+- **Statut** : Accepté (validé par le porteur le 2026-09-24) · **Date** : 2026-09-24
 
 ## Décision
 - Thème = document JSON validé (couleurs sémantiques, typographies parmi une liste contrôlée, rayons,

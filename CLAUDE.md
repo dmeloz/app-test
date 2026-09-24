@@ -12,8 +12,8 @@ record) ; la plateforme fournit la technologie. Marché initial : Suisse (FR/EN,
 
 ## État du projet
 
-- **Phase : cadrage (étape zéro).** Aucun code métier n'est autorisé avant validation humaine explicite
-  du cadrage (`docs/process/gates.md`).
+- **Phase : gate 0 → 1 franchi le 2026-09-24** (cadrage validé). Seul le lot L00 est débloqué, et
+  uniquement après validation de sa spec (`docs/lots/L00-socle/spec.md`). Voir `docs/process/gates.md`.
 - Le fichier `bonjour.html` à la racine est un test d'environnement existant : ne pas le supprimer.
 
 ## Décisions validées (résumé — détail dans `docs/product/scope-mvp.md` et les ADR)
@@ -25,7 +25,7 @@ record) ; la plateforme fournit la technologie. Marché initial : Suisse (FR/EN,
 - Hébergement initial en région suisse quand raisonnable ; auto-hébergement futur possible sans réécriture.
 - Alcool modélisé mais désactivé ; pourboire désactivé ; onboarding accompagné ; fiscalité configurable.
 
-## Architecture (proposée — ADR 0001 à 0015, statut « Proposé »)
+## Architecture (ADR acceptés le 2026-09-24 ; 0005, 0009, 0011, 0012 encore ouverts)
 
 ```
 apps/storefront   Next.js (App Router) — site public multi-domaine + PWA
@@ -38,7 +38,7 @@ packages/ui       design system + moteur de thème (tokens CSS)
 infra/            Docker Compose (dev/self-host) + OpenTofu (cloud)
 ```
 
-## Commandes (à créer au lot 0 — n'existent pas encore)
+## Commandes (créées au lot L00)
 
 ```bash
 pnpm install --frozen-lockfile

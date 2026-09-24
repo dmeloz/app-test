@@ -1,6 +1,6 @@
 # ADR 0013 — Orchestration Opus/Sonnet et garde-fous des agents
 
-- **Statut** : Proposé · **Date** : 2026-09-24
+- **Statut** : Accepté (validé par le porteur le 2026-09-24) · **Date** : 2026-09-24
 
 ## Contexte
 Le développement est réalisé par le porteur avec Claude. Il faut séparer conception/audit et

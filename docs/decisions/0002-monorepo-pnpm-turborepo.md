@@ -1,6 +1,6 @@
 # ADR 0002 — Monorepo pnpm + Turborepo
 
-- **Statut** : Proposé · **Date** : 2026-09-24
+- **Statut** : Accepté (validé par le porteur le 2026-09-24) · **Date** : 2026-09-24
 
 ## Contexte
 3 applications et ~7 packages partagés (domaine, contrats, db, ui, i18n, config, testing).

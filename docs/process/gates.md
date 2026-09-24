@@ -4,12 +4,12 @@
 
 Conditions (toutes requises) :
 
-- [ ] Le porteur a relu et validé explicitement `docs/product/scope-mvp.md`.
-- [ ] ADR 0001 à 0010 et 0013 à 0015 passés de `Proposé` à `Accepté` (ou amendés).
-- [ ] Décisions humaines listées dans `docs/product/open-decisions.md` § « Bloquantes pour le lot 0 » tranchées.
-- [ ] Backlog des 30 premiers jours (`docs/product/backlog.md`) accepté.
-- [ ] Fichiers d'orchestration Claude Code présents et hooks testés (`.claude/`).
-- [ ] Dépôt protégé : `main` protégée, PR obligatoire, CI obligatoire (à configurer par l'humain sur GitHub).
+- [x] Le porteur a relu et validé explicitement `docs/product/scope-mvp.md` (2026-09-24).
+- [x] ADR 0001–0004, 0006–0008, 0010, 0013–0015 acceptés (2026-09-24). 0005 et 0009 restent soumis à leurs propres gates (L08, L02).
+- [x] Décisions D1 à D6 tranchées selon les recommandations (2026-09-24).
+- [x] Backlog des 30 premiers jours accepté (2026-09-24).
+- [x] Fichiers d'orchestration Claude Code présents et hooks testés (`.claude/hooks/test-guards.sh`, 31/31).
+- [ ] Dépôt protégé : `main` protégée, PR obligatoire, CI obligatoire (à configurer par l'humain sur GitHub — **non confirmé**, requis avant la première fusion).
 
 Ne débloque que le **lot L00 (socle technique)**. Chaque lot suivant a sa propre validation de spec.
 

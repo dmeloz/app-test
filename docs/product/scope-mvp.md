@@ -1,6 +1,6 @@
 # Périmètre MVP recommandé
 
-> Statut : **PROPOSÉ — à valider par le porteur.**
+> Statut : **VALIDÉ par le porteur le 2026-09-24.**
 > Distinction : **Pilote** = ce qui doit exister pour le premier restaurant réel (phase 2).
 > **MVP commercial** = ce qui doit exister pour vendre à plusieurs restaurants suisses (phases 3–4).
 

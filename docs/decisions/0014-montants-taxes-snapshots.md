@@ -1,6 +1,6 @@
 # ADR 0014 — Montants, taxes et snapshots
 
-- **Statut** : Proposé · **Date** : 2026-09-24
+- **Statut** : Accepté (validé par le porteur le 2026-09-24) · **Date** : 2026-09-24
 
 ## Décision
 - Montants en entiers `bigint` dans la plus petite unité (centimes) + `currency` ISO 4217 ; type

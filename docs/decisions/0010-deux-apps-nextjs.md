@@ -1,6 +1,6 @@
 # ADR 0010 — Deux applications Next.js (site public / back-office)
 
-- **Statut** : Proposé · **Date** : 2026-09-24
+- **Statut** : Accepté (validé par le porteur le 2026-09-24) · **Date** : 2026-09-24
 
 ## Contexte
 Le site public est servi sur des domaines arbitraires de clients, cacheable, PWA ; le back-office est

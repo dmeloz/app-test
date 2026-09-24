@@ -1,6 +1,6 @@
 # ADR 0003 — Accès aux données : Drizzle + migrations SQL relues
 
-- **Statut** : Proposé · **Date** : 2026-09-24
+- **Statut** : Accepté (validé par le porteur le 2026-09-24) · **Date** : 2026-09-24
 
 ## Contexte
 Besoins : RLS avec `SET LOCAL` par transaction, FK composites, contraintes CHECK, index partiels,

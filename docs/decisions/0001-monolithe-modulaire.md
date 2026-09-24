@@ -1,6 +1,6 @@
 # ADR 0001 — Monolithe modulaire TypeScript
 
-- **Statut** : Proposé · **Date** : 2026-09-24
+- **Statut** : Accepté (validé par le porteur le 2026-09-24) · **Date** : 2026-09-24
 
 ## Contexte
 Un développeur seul, un pilote à atteindre vite, des exigences fortes de transactions (commande +

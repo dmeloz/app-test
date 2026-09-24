@@ -1,6 +1,6 @@
 # ADR 0008 — Réservation des créneaux en PostgreSQL
 
-- **Statut** : Proposé · **Date** : 2026-09-24
+- **Statut** : Accepté (validé par le porteur le 2026-09-24) · **Date** : 2026-09-24
 
 ## Contexte
 Le prompt suggère Redis pour les réservations temporaires. Or la réservation doit être atomique avec la

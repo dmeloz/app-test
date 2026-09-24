@@ -2,6 +2,8 @@
 
 ## Décisions humaines — bloquantes pour le lot L00
 
+> **D1 à D6 : validées selon les recommandations par le porteur le 2026-09-24.**
+
 | # | Décision | Recommandation Opus | Impact si non tranchée |
 |---|---|---|---|
 | D1 | Monorepo : Turborepo ou Nx | **Turborepo** (ADR 0002) | Bloque L00 |
