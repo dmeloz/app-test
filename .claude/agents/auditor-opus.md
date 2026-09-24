@@ -6,7 +6,7 @@ disallowedTools: Edit, Write, NotebookEdit
 model: opus
 effort: high
 permissionMode: default
-maxTurns: 60
+maxTurns: 150
 color: purple
 ---
 

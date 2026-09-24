@@ -30,5 +30,10 @@
 16. Opus : bilan des 30 jours — charge réelle mesurée vs estimée, révision de `roadmap.md`.
 17. **[H]** Entretiens restaurants : synthèse dans `personas-and-journeys.md`.
 
+## Réordonnancement validé le 2026-09-24
+
+Après l'approbation du L00 : **P01 Maquette** (1–1,5 sem., `docs/lots/P01-maquette/spec.md`) avant L01,
+pour démarcher des restaurants pendant la construction du socle. L01 et L02 glissent d'environ une semaine.
+
 ## Suivants (non planifiés)
 L03 → L14 selon `roadmap.md`. Ordre révisable après les entretiens restaurants.

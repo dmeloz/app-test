@@ -1,0 +1,33 @@
+{
+  "name": "api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "API NestJS + Fastify (/v1, webhooks, workers) — lot L00 : squelette + /health.",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "dev": "node scripts/dev.mjs main",
+    "dev:worker": "node scripts/dev.mjs worker",
+    "start": "node --env-file-if-exists=../../.env dist/main.js",
+    "start:worker": "node --env-file-if-exists=../../.env dist/worker.js"
+  },
+  "dependencies": {
+    "@fastify/helmet": "13.1.1",
+    "@nestjs/common": "12.1.0",
+    "@nestjs/core": "12.1.0",
+    "@nestjs/platform-fastify": "12.1.0",
+    "fastify": "5.12.5",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@swc/core": "1.16.2",
+    "@types/node": "24.13.6",
+    "typescript": "6.0.3",
+    "unplugin-swc": "2.0.0",
+    "vitest": "5.0.1"
+  }
+}

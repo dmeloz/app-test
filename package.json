@@ -1,0 +1,40 @@
+{
+  "name": "restaurant-saas",
+  "version": "0.0.0",
+  "private": true,
+  "description": "SaaS multi-tenant de commande directe pour restaurants — monorepo (lot L00 : socle technique).",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=24.21.0",
+    "pnpm": ">=12.6.0"
+  },
+  "packageManager": "pnpm@12.6.0",
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "test:lint-boundaries": "node --test tools/eslint-boundaries.test.mjs",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e": "turbo run build --filter=storefront --filter=backoffice && playwright test --config e2e/playwright.config.ts",
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@next/eslint-plugin-next": "16.3.6",
+    "@playwright/test": "1.63.0",
+    "@types/node": "24.13.6",
+    "eslint": "10.11.0",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-import-resolver-typescript": "4.4.5",
+    "eslint-plugin-import-x": "4.17.1",
+    "eslint-plugin-jsx-a11y": "6.10.2",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.12.0",
+    "prettier": "3.9.9",
+    "turbo": "2.11.3",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.70.1"
+  }
+}

@@ -72,7 +72,8 @@ Terraform/OpenTofu, image scannée/SBOM (L13) · i18n complet (L05).
 - **AC-L00-11** L'image `api` se construit, tourne en utilisateur non-root, et `/health/live` répond depuis
   le conteneur.
 - **AC-L00-12** `.claude/hooks/test-guards.sh` passe en CI.
-- **AC-L00-13** `bonjour.html` à la racine est conservé tel quel.
+- **AC-L00-13** ~~`bonjour.html` à la racine est conservé tel quel.~~ **Retiré** : le porteur a demandé
+  la suppression de ce fichier de test le 2026-09-24 ; critère sans objet.
 
 ## 5. Contrat API
 Uniquement `/health/live` et `/health/ready` (voir AC-L00-04). Format d'erreur standard

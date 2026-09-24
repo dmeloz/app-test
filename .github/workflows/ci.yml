@@ -1,0 +1,157 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      - name: Installer pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+
+      - name: Installer Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+
+      - name: Installer les dépendances (lockfile verrouillé)
+        run: pnpm install --frozen-lockfile
+
+      - name: Format (vérification)
+        run: pnpm format:check
+
+      - name: Lint (frontières de modules incluses)
+        run: pnpm lint
+
+      - name: Frontières de modules (fixtures dédiées)
+        run: pnpm test:lint-boundaries
+
+      - name: Typecheck (TypeScript strict)
+        run: pnpm typecheck
+
+      - name: Tests unitaires
+        run: pnpm test
+
+      - name: Garde-fous des agents (.claude/hooks)
+        run: .claude/hooks/test-guards.sh
+
+      - name: Scan de secrets (gitleaks CLI épinglée, historique complet)
+        # N5 (audit-2.md) : `gitleaks/gitleaks-action` interroge l'API GitHub des commits d'une PR
+        # (non paginée, 30 résultats maximum) — au-delà, des commits ne sont jamais scannés. Remplacé
+        # par la CLI officielle, épinglée par version et vérifiée par somme SHA-256, exécutée
+        # directement sur l'historique complet du clone (`actions/checkout` ci-dessus avec
+        # `fetch-depth: 0`) : `gitleaks detect` scanne par défaut tout l'historique Git du dépôt
+        # source, sans dépendre d'une liste de commits fournie par une API tierce.
+        #
+        # Version et somme de contrôle : release officielle `v8.30.1` (dernier tag au 2026-09-24,
+        # `git ls-remote --tags https://github.com/gitleaks/gitleaks`), somme copiée telle quelle
+        # depuis le fichier `gitleaks_8.30.1_checksums.txt` de cette release (téléchargé et vérifié
+        # manuellement le 2026-09-24 : `sha256sum` de l'archive téléchargée == valeur ci-dessous).
+        env:
+          GITLEAKS_VERSION: "8.30.1"
+          GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+        run: |
+          set -euo pipefail
+          curl -sSL --fail -o gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf gitleaks.tar.gz gitleaks
+          chmod +x gitleaks
+          ./gitleaks detect --source . --redact
+          rm -f gitleaks gitleaks.tar.gz
+
+      - name: Audit des dépendances (bloquant sur criticité critique)
+        run: pnpm audit --prod --audit-level=critical
+
+      - name: Build de production
+        run: pnpm build
+
+      - name: Installer Playwright (Chromium)
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Tests e2e
+        run: pnpm test:e2e
+
+      - name: Publier le rapport Playwright en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  docker-api:
+    # H3 (audit-1.md) : le build Docker de l'API n'était vérifié par aucun job CI — l'erreur
+    # (`tsconfig.base.json` absent après `turbo prune`) n'a été détectée que par simulation
+    # manuelle hors Docker. Ce job construit réellement l'image (sans push, aucun registre
+    # distant) et vérifie l'exécution non-root + `/health/live`.
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Construire l'image Docker de l'API (sans push)
+        run: |
+          docker build \
+            --file infra/docker/api.Dockerfile \
+            --tag restaurant-saas-api:ci \
+            .
+
+      - name: Démarrer le conteneur
+        run: |
+          docker run \
+            --detach \
+            --name api-ci \
+            --publish 127.0.0.1:3000:3000 \
+            restaurant-saas-api:ci
+
+      - name: Vérifier que le processus ne tourne pas en root
+        run: |
+          uid="$(docker exec api-ci id -u)"
+          echo "uid=$uid"
+          if [ "$uid" = "0" ]; then
+            echo "Le processus de l'API tourne en root (uid=0)." >&2
+            exit 1
+          fi
+
+      - name: Attendre /health/live puis vérifier la réponse
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000/health/live > response.json; then
+              echo "Réponse obtenue à la tentative $i :"
+              cat response.json
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Aucune réponse de /health/live après 30 tentatives." >&2
+          docker logs api-ci >&2 || true
+          exit 1
+
+      - name: Afficher les logs du conteneur (diagnostic)
+        if: always()
+        run: docker logs api-ci || true
+
+      - name: Nettoyer le conteneur
+        if: always()
+        run: |
+          docker rm --force api-ci || true

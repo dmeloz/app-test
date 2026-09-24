@@ -1,0 +1,12 @@
+pnpm-lock.yaml
+**/dist/**
+**/.next/**
+**/.turbo/**
+**/node_modules/**
+**/coverage/**
+**/playwright-report/**
+**/test-results/**
+
+# Hors périmètre du lot L00 (contenu préexistant, non touché par ce lot) :
+docs/**
+.claude/agents/**
