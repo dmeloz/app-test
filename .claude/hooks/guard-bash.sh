@@ -42,7 +42,9 @@ shopt -s nocasematch
 
 # Secrets
 # Fichiers .env : toute variante (.env, .env.local, .env.dev, .env.backup…) sauf les modèles sans secret.
-env_re='(cat|less|more|head|tail|grep|sed|awk|cp|mv|scp|curl|base64|xxd|strings|source)[[:space:]]([^;&|]*[/[:space:]"'"'"'=])?\.env(\.[A-Za-z0-9_-]+)?([[:space:]"'"'"']|$)'
+# Suffixes multiples acceptés (.env.production.local, .env.local.bak) ; terminateurs incluant | ; & < > ) ;
+# redirection d'entrée (<.env) couverte. Seuls les modèles terminaux exacts sont autorisés.
+env_re='(cat|less|more|head|tail|grep|sed|awk|cp|mv|scp|curl|base64|xxd|strings|source)[[:space:]<]([^;&|]*[/[:space:]"'"'"'=<])?\.env((\.[A-Za-z0-9_-]+)*)([[:space:]"'"'"'<>|;&)]|$)'
 if [[ "$cmd" =~ $env_re ]]; then
   case "${BASH_REMATCH[3]}" in
     .example|.sample|.template) ;;
