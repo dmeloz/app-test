@@ -10,6 +10,8 @@ test.describe("storefront", () => {
     expect(response?.status()).toBe(200);
     await expect(page.getByRole("heading", { name: "Bientôt disponible" })).toBeVisible();
     await expect(page.locator("html")).toHaveAttribute("lang", "fr");
+    // L4 (audit-1.md) : le titre <title> vient du dictionnaire i18n, pas d'un texte en dur.
+    await expect(page).toHaveTitle("Bientôt disponible");
   });
 
   test("EN (/en) répond 200 et affiche le texte anglais", async ({ page }) => {
@@ -17,6 +19,7 @@ test.describe("storefront", () => {
     expect(response?.status()).toBe(200);
     await expect(page.getByRole("heading", { name: "Coming soon" })).toBeVisible();
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
+    await expect(page).toHaveTitle("Coming soon");
   });
 });
 
@@ -25,11 +28,16 @@ test.describe("backoffice", () => {
     const response = await page.goto(`${BACKOFFICE_URL}/fr`);
     expect(response?.status()).toBe(200);
     await expect(page.getByRole("heading", { name: "Back-office" })).toBeVisible();
+    // L4 (audit-1.md) : l'attribut `lang` du back-office n'était vérifié par aucun test.
+    await expect(page.locator("html")).toHaveAttribute("lang", "fr");
+    await expect(page).toHaveTitle("Back-office");
   });
 
   test("EN (/en) répond 200 et affiche le texte anglais", async ({ page }) => {
     const response = await page.goto(`${BACKOFFICE_URL}/en`);
     expect(response?.status()).toBe(200);
     await expect(page.getByRole("heading", { name: "Back office" })).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
+    await expect(page).toHaveTitle("Back office");
   });
 });
