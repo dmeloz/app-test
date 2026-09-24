@@ -41,7 +41,14 @@ shopt -s nocasematch
 [[ "$cmd" =~ rm[[:space:]]+(-[a-z]*r[a-z]*f|-[a-z]*f[a-z]*r)[a-z]*[[:space:]]+(/|~|\$HOME|\.|\*)([[:space:]]|$) ]] && block "suppression récursive dangereuse"
 
 # Secrets
-[[ "$cmd" =~ (cat|less|more|head|tail|grep|sed|awk|cp|mv|scp|curl|base64|xxd|strings)[[:space:]].*\.env([^.]|\.(local|production|staging|prod)|$) ]] && block "lecture ou copie d'un fichier .env"
+# Fichiers .env : toute variante (.env, .env.local, .env.dev, .env.backup…) sauf les modèles sans secret.
+env_re='(cat|less|more|head|tail|grep|sed|awk|cp|mv|scp|curl|base64|xxd|strings|source)[[:space:]]([^;&|]*[/[:space:]"'"'"'=])?\.env(\.[A-Za-z0-9_-]+)?([[:space:]"'"'"']|$)'
+if [[ "$cmd" =~ $env_re ]]; then
+  case "${BASH_REMATCH[3]}" in
+    .example|.sample|.template) ;;
+    *) block "lecture ou copie d'un fichier .env" ;;
+  esac
+fi
 [[ "$cmd" =~ (^|[[:space:]])(printenv|env)([[:space:]]|$) ]] && [[ ! "$cmd" =~ env[[:space:]]+[A-Z_]+= ]] && block "affichage de l'environnement (secrets possibles)"
 key_re='(cat|less|more|head|tail|grep|sed|awk|cp|mv|scp|curl|base64|xxd|strings|openssl)[[:space:]][^|;&]*(id_rsa|id_ed25519|\.pem|\.p12|\.pfx|credentials\.json|service-account)'
 [[ "$cmd" =~ $key_re ]] && block "lecture ou copie d'une clé ou d'un identifiant"
