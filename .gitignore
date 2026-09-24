@@ -4,7 +4,15 @@
 node_modules/
 .turbo/
 dist/
+build/
 .next/
+out/
 coverage/
 *.pem
 *.key
+*.tsbuildinfo
+playwright-report/
+test-results/
+.DS_Store
+npm-debug.log*
+
