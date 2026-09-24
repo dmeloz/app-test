@@ -75,3 +75,62 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  docker-api:
+    # H3 (audit-1.md) : le build Docker de l'API n'était vérifié par aucun job CI — l'erreur
+    # (`tsconfig.base.json` absent après `turbo prune`) n'a été détectée que par simulation
+    # manuelle hors Docker. Ce job construit réellement l'image (sans push, aucun registre
+    # distant) et vérifie l'exécution non-root + `/health/live`.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Construire l'image Docker de l'API (sans push)
+        run: |
+          docker build \
+            --file infra/docker/api.Dockerfile \
+            --tag restaurant-saas-api:ci \
+            .
+
+      - name: Démarrer le conteneur
+        run: |
+          docker run \
+            --detach \
+            --name api-ci \
+            --publish 127.0.0.1:3000:3000 \
+            restaurant-saas-api:ci
+
+      - name: Vérifier que le processus ne tourne pas en root
+        run: |
+          uid="$(docker exec api-ci id -u)"
+          echo "uid=$uid"
+          if [ "$uid" = "0" ]; then
+            echo "Le processus de l'API tourne en root (uid=0)." >&2
+            exit 1
+          fi
+
+      - name: Attendre /health/live puis vérifier la réponse
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000/health/live > response.json; then
+              echo "Réponse obtenue à la tentative $i :"
+              cat response.json
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Aucune réponse de /health/live après 30 tentatives." >&2
+          docker logs api-ci >&2 || true
+          exit 1
+
+      - name: Afficher les logs du conteneur (diagnostic)
+        if: always()
+        run: docker logs api-ci || true
+
+      - name: Nettoyer le conteneur
+        if: always()
+        run: |
+          docker rm --force api-ci || true

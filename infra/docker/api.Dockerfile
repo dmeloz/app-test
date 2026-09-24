@@ -23,6 +23,12 @@ RUN pnpm install --frozen-lockfile
 FROM installer AS builder
 COPY --from=pruner /repo/out/full/ .
 COPY turbo.json ./turbo.json
+# H3 (audit-1.md) : `turbo prune --docker` ne copie que les fichiers rattachés aux packages du
+# sous-graphe (via `package.json`/`pnpm-workspace.yaml`) ; `tsconfig.base.json`, référencé par
+# `extends` depuis `apps/api/tsconfig.json`, n'en fait pas partie et reste absent de
+# `out/full/` — `tsc` échoue alors avec `TS5083: Cannot read file '.../tsconfig.base.json'`.
+# Copié explicitement depuis la racine du contexte de build (voir simulation dans le rapport).
+COPY tsconfig.base.json ./tsconfig.base.json
 RUN pnpm turbo run build --filter=api...
 
 FROM base AS runtime
