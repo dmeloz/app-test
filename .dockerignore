@@ -8,3 +8,7 @@ node_modules
 **/test-results
 .git
 docs
+.env
+.env.*
+**/.env
+**/.env.*
