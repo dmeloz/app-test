@@ -13,6 +13,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
+    "test:lint-boundaries": "node --test tools/eslint-boundaries.test.mjs",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:e2e": "turbo run build --filter=storefront --filter=backoffice && playwright test --config e2e/playwright.config.ts",
