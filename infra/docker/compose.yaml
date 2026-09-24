@@ -4,7 +4,9 @@ name: restaurant-saas-dev
 
 services:
   postgres:
-    image: postgres:16.15-alpine
+    # L5 (audit-2.md) : digest du manifeste multi-architecture obtenu via l'API Docker Hub
+    # (`GET /v2/repositories/library/postgres/tags/16.15-alpine`, champ `digest`, 2026-09-24).
+    image: postgres:16.15-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
     restart: unless-stopped
     environment:
       POSTGRES_USER: app_dev
@@ -21,7 +23,9 @@ services:
       retries: 10
 
   redis:
-    image: redis:7.4-alpine
+    # L5 (audit-2.md) : digest obtenu via l'API Docker Hub
+    # (`GET /v2/repositories/library/redis/tags/7.4-alpine`, champ `digest`, 2026-09-24).
+    image: redis:7.4-alpine@sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499
     restart: unless-stopped
     ports:
       - "127.0.0.1:6379:6379"
@@ -32,7 +36,9 @@ services:
       retries: 10
 
   mailpit:
-    image: axllent/mailpit:v1.20.7
+    # L5 (audit-2.md) : digest obtenu via l'API Docker Hub
+    # (`GET /v2/repositories/axllent/mailpit/tags/v1.20.7`, champ `digest`, 2026-09-24).
+    image: axllent/mailpit:v1.20.7@sha256:7eef0f38dbc85e4e264f2edf5d70fbb694826791e05cb2cae4fc9e3282f968f5
     restart: unless-stopped
     ports:
       - "127.0.0.1:8025:8025" # UI web

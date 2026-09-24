@@ -14,8 +14,11 @@
 # processus zombies) : `docker run --init` n'est donc pas nécessaire avec cette image. Si une
 # image dérivée retire `tini`, ajouter `--init` au `docker run` est l'alternative documentée
 # (M7, audit-1.md).
+#
+# L5 (audit-2.md) : digest obtenu via l'API Docker Hub
+# (`GET /v2/repositories/library/node/tags/24.21.0-alpine`, champ `digest`, 2026-09-24), tag conservé.
 
-FROM node:24.21.0-alpine AS base
+FROM node:24.21.0-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS base
 RUN apk add --no-cache libc6-compat
 RUN corepack enable && corepack prepare pnpm@12.6.0 --activate
 WORKDIR /repo
@@ -63,7 +66,7 @@ RUN pnpm --filter api deploy --prod --frozen-lockfile /repo/deploy \
 
 # M7 : stage runtime reconstruit depuis `node:*-alpine` (pas `base`) — ni pnpm/corepack ni les
 # sources du monorepo n'y entrent jamais, seul le contenu autonome produit par `deployer`.
-FROM node:24.21.0-alpine AS runtime
+FROM node:24.21.0-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS runtime
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOST=0.0.0.0

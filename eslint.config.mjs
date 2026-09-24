@@ -113,6 +113,14 @@ export default tseslint.config(
               message:
                 "packages/domain doit rester pur : aucune dépendance à un framework (ADR 0001).",
             },
+            {
+              // N9 (audit-2.md) : `node:module`/`module` expose `createRequire`, qui permet de
+              // charger dynamiquement n'importe quel module (CommonJS) en contournant la liste
+              // d'autorisation ci-dessus et la règle `no-restricted-syntax` sur `import()`.
+              group: ["node:module", "module"],
+              message:
+                "packages/domain doit rester pur : node:module/createRequire interdit (ADR 0001).",
+            },
           ],
         },
       ],
@@ -123,6 +131,13 @@ export default tseslint.config(
         {
           selector: "ImportExpression",
           message: "packages/domain doit rester pur : import() dynamique interdit (ADR 0001).",
+        },
+        {
+          // N9 (audit-2.md) : type `import("...")` (TSImportType), ex. `type T = import("pg").Pool`
+          // — contourne aussi la liste d'autorisation puisqu'il n'est pas capté par `ImportExpression`
+          // (nœud AST distinct, purement pour les types, effacé à la compilation).
+          selector: "TSImportType",
+          message: 'packages/domain doit rester pur : type import("...") interdit (ADR 0001).',
         },
       ],
     },

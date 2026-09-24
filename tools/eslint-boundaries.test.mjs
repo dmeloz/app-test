@@ -80,6 +80,16 @@ const CASES = [
     label: "packages/domain → import() dynamique (M8)",
   },
   {
+    file: "packages/domain/src/__lint-fixtures__/imports-node-module.ts",
+    ruleId: "no-restricted-imports",
+    label: "packages/domain → node:module/createRequire (N9)",
+  },
+  {
+    file: "packages/domain/src/__lint-fixtures__/type-import.ts",
+    ruleId: "no-restricted-syntax",
+    label: 'packages/domain → type import("...") (N9)',
+  },
+  {
     file: "apps/storefront/src/__lint-fixtures-typed__/img-element.tsx",
     ruleId: "@next/next/no-img-element",
     label: "storefront → <img> brut (M2)",
