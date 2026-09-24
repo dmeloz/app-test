@@ -15,7 +15,7 @@
       "env": ["NODE_ENV"],
       "passThroughEnv": ["DATABASE_URL", "DATABASE_URL_*", "REDIS_URL"]
     },
-    "apps/api#test": {
+    "api#test": {
       "dependsOn": ["^build", "build"],
       "outputs": ["coverage/**"],
       "env": ["NODE_ENV"],

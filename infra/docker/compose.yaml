@@ -43,30 +43,34 @@ services:
       timeout: 5s
       retries: 10
 
-  # H4 (audit-1.md) : `minio/minio:RELEASE.2024-08-29T01-40-52Z` est introuvable sur Docker Hub —
-  # le dépôt `minio/minio` lui-même n'existe plus (`GET /v2/repositories/minio/minio/` → 404 le
-  # 2026-09-24). Remplacé par LocalStack (service S3 uniquement), voir la justification et la
-  # méthode de vérification dans `docs/architecture/self-hosting.md` (section « Stockage S3 en
-  # développement »).
+  # H4 (audit-2.md) : `localstack/localstack:2026.08.4` s'est révélé être l'image LocalStack
+  # **Pro** (le dépôt communautaire est archivé, l'offre gratuite n'est plus utilisable sans compte).
+  # Remplacé par SeaweedFS sur arbitrage du fil principal (Opus) — voir la justification complète,
+  # les vérifications (tag, digest, entrypoint/commande, healthcheck) et les alternatives écartées
+  # dans `docs/architecture/self-hosting.md` (section « Stockage S3 en développement »).
   s3:
-    image: localstack/localstack:2026.08.4
+    # Tag 4.47 (dernière version stable au 2026-09-24) — licence Apache-2.0, sans compte,
+    # S3-compatible. Digest vérifié par octet (`sha256sum` du manifeste téléchargé via l'API du
+    # registre == digest ci-dessous), voir self-hosting.md.
+    image: chrislusf/seaweedfs:4.47@sha256:ce9e796f1fe6f06968f4c04bdaf8f678dad9c8acdfef3d244133d71bfa6bf882
     restart: unless-stopped
-    environment:
-      SERVICES: s3
-      AWS_DEFAULT_REGION: eu-central-1
-      # Identifiants factices : LocalStack ne vérifie aucune signature réelle en développement.
-      AWS_ACCESS_KEY_ID: dev-only-access-key
-      AWS_SECRET_ACCESS_KEY: dev-only-secret-key
+    # Commande par défaut de l'image (`mini -dir=/data`) : mode "mini" officiellement recommandé
+    # par le projet pour l'usage S3 en développement, démarre un cluster à processus unique
+    # (master + volume + filer + S3 + admin) avec le serveur S3 activé par défaut (`-s3=true`,
+    # port 8333) — vérifié dans `weed/command/mini.go` en amont. Repris ici explicitement plutôt
+    # que de dépendre implicitement du `CMD` de l'image.
+    command: ["mini", "-dir=/data"]
     ports:
-      - "127.0.0.1:4566:4566" # port "edge" unique : API S3 (et les autres API AWS émulées, non utilisées ici)
+      - "127.0.0.1:8333:8333" # port S3 (seul port utilisé par ce lot ; master/volume/filer/admin non exposés)
     volumes:
-      - s3_data:/var/lib/localstack
+      - s3_data:/data
     healthcheck:
-      # Commande officielle de l'image (voir `HEALTHCHECK` dans le Dockerfile amont) : réutilisée
-      # telle quelle plutôt que de deviner un binaire, car vérifiée présente (justification dans
-      # self-hosting.md).
-      test:
-        ["CMD", "/opt/code/localstack/.venv/bin/localstack", "status", "services", "--format=json"]
+      # `/healthz` du serveur master intégré (toujours actif en mode "mini", port 9333 interne) :
+      # vérifié dans `weed/server/master_server.go` en amont — répond 200 sans dépendre de l'état
+      # du cluster (liveness pure). `curl` est présent dans l'image (installé par le Dockerfile
+      # amont : `apk add --no-cache fuse curl su-exec ...`), vérifié dans la configuration de
+      # l'image via l'API du registre (voir self-hosting.md) et le Dockerfile source.
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9333/healthz"]
       interval: 5s
       timeout: 5s
       retries: 10

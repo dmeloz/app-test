@@ -18,6 +18,17 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   // L4 (audit-1.md) : ne pas annoncer le framework au client (`X-Powered-By: Next.js`).
   poweredByHeader: false,
+  // M1 (audit-2.md) : `app/[locale]` sert de layout racine (modèle i18n officiel Next 16, aucun
+  // `app/layout.tsx` séparé), mais aucune route n'existe pour un segment complètement inconnu
+  // (ex. `/fr/inexistant`) : Next route alors vers une page « /_not-found » synthétique, rendue par
+  // un layout racine minimal par défaut — jamais notre `[locale]/layout.tsx`, donc jamais le nonce
+  // CSP posé par `src/proxy.ts`. C'est exactement le cas documenté par Next 16 pour justifier
+  // `global-not-found` (« Your root layout is defined using top-level dynamic segments... »,
+  // doc Next 16 embarquée : `node_modules/next/dist/docs/.../not-found.md`). `app/global-not-found.tsx`
+  // reprend le nonce comme les autres pages. Voir `docs/architecture/rendering-and-csp.md`.
+  experimental: {
+    globalNotFound: true,
+  },
   async headers() {
     return [{ source: "/:path*", headers: SECURITY_HEADERS }];
   },
