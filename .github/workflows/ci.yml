@@ -9,26 +9,25 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  NODE_VERSION: "24.21.0"
-  PNPM_VERSION: "12.6.0"
+permissions:
+  contents: read
 
 jobs:
   ci:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
 
       - name: Installer pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
 
       - name: Installer Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: ".nvmrc"
           cache: "pnpm"
 
       - name: Installer les dépendances (lockfile verrouillé)
@@ -40,6 +39,9 @@ jobs:
       - name: Lint (frontières de modules incluses)
         run: pnpm lint
 
+      - name: Frontières de modules (fixtures dédiées)
+        run: pnpm test:lint-boundaries
+
       - name: Typecheck (TypeScript strict)
         run: pnpm typecheck
 
@@ -50,12 +52,12 @@ jobs:
         run: .claude/hooks/test-guards.sh
 
       - name: Scan de secrets (gitleaks)
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Audit des dépendances (rapport, non bloquant au L00)
-        run: pnpm audit --prod || true
+      - name: Audit des dépendances (bloquant sur criticité critique)
+        run: pnpm audit --prod --audit-level=critical
 
       - name: Build de production
         run: pnpm build
@@ -68,7 +70,7 @@ jobs:
 
       - name: Publier le rapport Playwright en cas d'échec
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: playwright-report
           path: playwright-report/
