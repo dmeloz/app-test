@@ -11,11 +11,26 @@
     },
     "test": {
       "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
+      "outputs": ["coverage/**"],
+      "env": ["NODE_ENV"],
+      "passThroughEnv": ["DATABASE_URL", "DATABASE_URL_*", "REDIS_URL"]
+    },
+    "apps/api#test": {
+      "dependsOn": ["^build", "build"],
+      "outputs": ["coverage/**"],
+      "env": ["NODE_ENV"],
+      "passThroughEnv": ["DATABASE_URL", "DATABASE_URL_*", "REDIS_URL"]
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": ["NODE_ENV", "PORT", "HOST", "LOG_LEVEL"],
+      "passThroughEnv": ["DATABASE_URL", "DATABASE_URL_*", "REDIS_URL"]
+    },
+    "start": {
+      "cache": false,
+      "env": ["NODE_ENV", "PORT", "HOST", "LOG_LEVEL"],
+      "passThroughEnv": ["DATABASE_URL", "DATABASE_URL_*", "REDIS_URL"]
     }
   }
 }
