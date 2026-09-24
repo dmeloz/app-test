@@ -1,7 +1,7 @@
 # Lot P01 — Maquette cliquable de démonstration
 
-- **Statut** : PROPOSÉ
-- **Validé par / le** : _à compléter par le porteur_          ← requis avant toute implémentation
+- **Statut** : VALIDÉ
+- **Validé par / le** : le porteur (« Je valide et tu as carte blanche ») / 2026-09-24
 - **Critique** : non (aucune donnée réelle, aucun paiement, aucune base) → audit `auditor-opus` allégé
 - **ADR liés** : 0010 (deux apps Next), 0015 (design tokens)
 - **Pré-requis** : L00 `APPROVED`
