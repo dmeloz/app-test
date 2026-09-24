@@ -1,10 +1,12 @@
 # Lot L01 — Fondation base de données multi-tenant
 
-- **Statut** : PROPOSÉ
-- **Validé par / le** : _à compléter par le porteur_          ← requis avant toute implémentation
+- **Statut** : VALIDÉ
+- **Validé par / le** : le porteur (« Je valide L01 ») / 2026-09-24
 - **Critique** : **OUI** (modèle multi-tenant, migrations PostgreSQL) → `auditor-opus` **et** `security-opus`
 - **ADR liés** : 0003 (Drizzle), 0004 (tenancy + RLS), 0007 (outbox, table seulement), 0014 (montants)
-- **Pré-requis** : L00 `APPROVED` et fusionné (ou au moins approuvé sur la branche)
+- **Pré-requis** : L00 `APPROVED` et fusionné ; P01 (maquette) passe avant selon le planning validé ;
+  **réserves de `docs/process/gates.md` levées par le porteur** (Docker Compose `up --wait` et `pnpm dev`
+  sur un poste avec Docker) avant le démarrage de l'implémentation.
 - **Branche** : `claude/opus-sonnet-workflow-gxnvua` (ou branche désignée pour la session)
 
 ## 1. Besoin et contexte
