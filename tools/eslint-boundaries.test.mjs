@@ -60,6 +60,21 @@ const CASES = [
     label: "packages/domain → @aws-sdk/client-s3 (M8)",
   },
   {
+    file: "packages/domain/src/__lint-fixtures__/imports-postgres.ts",
+    ruleId: "no-restricted-imports",
+    label: "packages/domain → postgres (M8)",
+  },
+  {
+    file: "packages/domain/src/__lint-fixtures__/imports-ioredis.ts",
+    ruleId: "no-restricted-imports",
+    label: "packages/domain → ioredis (M8)",
+  },
+  {
+    file: "packages/domain/src/__lint-fixtures__/imports-stripe.ts",
+    ruleId: "no-restricted-imports",
+    label: "packages/domain → stripe (M8)",
+  },
+  {
     file: "packages/domain/src/__lint-fixtures__/dynamic-import.ts",
     ruleId: "no-restricted-syntax",
     label: "packages/domain → import() dynamique (M8)",

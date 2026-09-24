@@ -25,14 +25,18 @@ const FRAMEWORK_IMPORTS_FORBIDDEN_IN_DOMAIN = [
   "drizzle-orm/*",
   "stripe",
   "ioredis",
+  "ioredis/*",
   "fastify",
   "@fastify/*",
   "react",
   "react-dom",
   "react/*",
-  // M8 (lot L01) : futurs fournisseurs d'infrastructure — base de données, files d'attente, stockage.
+  // M8 (audit-1.md, lot L01) : motifs interdits explicitement listés par le constat — base de
+  // données, files d'attente, stockage.
   "pg",
   "pg/*",
+  "postgres",
+  "postgres/*",
   "bullmq",
   "bullmq/*",
   "@aws-sdk/*",

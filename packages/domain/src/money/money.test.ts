@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { add, money, MoneyError } from "./money";
+import { add, money, MoneyError } from "./money.js";
 
 describe("money", () => {
   it("construit un montant à partir d'un entier de la plus petite unité", () => {
