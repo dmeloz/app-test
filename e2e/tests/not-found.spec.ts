@@ -39,6 +39,11 @@ for (const app of APPS) {
         const response = await page.goto(`${app.baseUrl}${path}`);
         expect(response?.status()).toBe(404);
 
+        // L-b (audit-3.md) : titre bilingue cohérent quel que soit le chemin qui mène à la 404
+        // (`app/global-not-found.tsx` pour `/fr/inexistant`, `[locale]/layout.tsx` +
+        // `app/not-found.tsx` pour `/xx`).
+        await expect(page).toHaveTitle("404 — Page introuvable / Page not found");
+
         await page.waitForLoadState("networkidle");
 
         const headers = response?.headers() ?? {};

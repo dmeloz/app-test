@@ -26,7 +26,13 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
-  reporter: [["list"]],
+  // L-a (audit-3.md) : `outputFolder` est résolu par Playwright relativement au dossier du fichier
+  // de config (`e2e/`), pas au répertoire d'exécution. Chemin absolu vers la racine du dépôt pour
+  // correspondre à l'artefact CI (`.github/workflows/ci.yml`, `path: playwright-report/`).
+  reporter: [
+    ["list"],
+    ["html", { open: "never", outputFolder: path.join(ROOT_DIR, "playwright-report") }],
+  ],
   use: {
     trace: "on-first-retry",
     launchOptions: executablePath ? { executablePath } : {},

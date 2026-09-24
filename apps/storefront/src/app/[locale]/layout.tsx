@@ -19,17 +19,17 @@ interface LocaleLayoutParams {
 // M1 (audit-2.md) : ce fichier n'appelle plus `notFound()` lui-même (ni ici, ni dans le composant de
 // layout ci-dessous) — un segment invalide reste de la responsabilité de `page.tsx` (seule source de
 // vérité désormais). Un layout qui lève `notFound()` avant de rendre ses enfants court-circuite la
-// limite `not-found.tsx` déclarée pour CE segment (`[locale]/not-found.tsx`) : React n'a pas encore
-// construit cette limite (elle enveloppe les enfants du layout, pas le layout lui-même), donc
-// l'erreur remonte à la limite du segment parent (racine), qui rend le contenu 404 par défaut de
-// Next — avec des styles en ligne sans notre nonce CSP (constaté par
-// `e2e/tests/not-found.spec.ts` : « Refused to apply inline style »). En laissant uniquement
-// `page.tsx` (un enfant réel du layout) lever `notFound()`, la limite `[locale]/not-found.tsx`
-// s'applique correctement.
+// limite `not-found.tsx` du segment (elle enveloppe les enfants du layout, pas le layout
+// lui-même) : l'erreur remonte alors à la limite racine, rendue sans notre nonce CSP (constaté par
+// `e2e/tests/not-found.spec.ts` : « Refused to apply inline style »). Voir `app/not-found.tsx`.
+//
+// L-b (audit-3.md) : le titre reste bilingue pour un segment `[locale]` non supporté (ex. `/xx`),
+// cohérent avec le titre de `app/not-found.tsx` / `app/global-not-found.tsx` (métadonnées HTML —
+// pas de contenu dupliqué dans le dictionnaire i18n, cf. commentaire de ces fichiers).
 export async function generateMetadata({ params }: LocaleLayoutParams): Promise<Metadata> {
   const { locale } = await params;
   if (!isSupportedLocale(locale)) {
-    return { title: "Not found" };
+    return { title: "404 — Page introuvable / Page not found" };
   }
   return { title: getDictionary(locale).title };
 }
@@ -52,7 +52,7 @@ export default async function LocaleLayout({
 
   // `locale` peut être non supporté ici (ex. `/xx`) : `page.tsx` lève `notFound()` dans ce cas (voir
   // commentaire ci-dessus) — l'attribut `lang` reste alors la valeur brute du segment, sans
-  // conséquence puisque la page effectivement affichée est la 404 (`[locale]/not-found.tsx`).
+  // conséquence puisque la page effectivement affichée est `app/not-found.tsx`.
   const { locale } = await params;
 
   return (

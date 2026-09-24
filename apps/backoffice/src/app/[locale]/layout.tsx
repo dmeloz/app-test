@@ -22,10 +22,14 @@ interface LocaleLayoutParams {
 // limite `not-found.tsx` du segment (elle enveloppe les enfants du layout, pas le layout
 // lui-même) : l'erreur remonte alors à la limite racine, rendue sans notre nonce CSP (constaté par
 // `e2e/tests/not-found.spec.ts` : « Refused to apply inline style »). Voir `app/not-found.tsx`.
+//
+// L-b (audit-3.md) : le titre reste bilingue pour un segment `[locale]` non supporté (ex. `/xx`),
+// cohérent avec le titre de `app/not-found.tsx` / `app/global-not-found.tsx` (métadonnées HTML —
+// pas de contenu dupliqué dans le dictionnaire i18n, cf. commentaire de ces fichiers).
 export async function generateMetadata({ params }: LocaleLayoutParams): Promise<Metadata> {
   const { locale } = await params;
   if (!isSupportedLocale(locale)) {
-    return { title: "Not found" };
+    return { title: "404 — Page introuvable / Page not found" };
   }
   return { title: getDictionary(locale).title };
 }
