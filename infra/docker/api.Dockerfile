@@ -22,7 +22,15 @@ WORKDIR /repo
 
 FROM base AS pruner
 COPY . .
-RUN npx --yes turbo@2.11.3 prune api --docker
+# N8 (audit-2.md) : `npx --yes turbo@2.11.3` téléchargeait `turbo` directement depuis le registre
+# npm, hors lockfile — aucune vérification d'intégrité contre `pnpm-lock.yaml`, version en clair
+# dans la commande plutôt que dans `package.json`. `turbo` est déjà une dépendance de développement
+# épinglée exactement du monorepo (`package.json` racine, verrouillée par `pnpm-lock.yaml`) :
+# `pnpm install --frozen-lockfile` (refuse toute divergence avec le lockfile) puis `pnpm exec turbo`
+# utilisent ce même binaire, verrouillé et vérifié, sans jamais atteindre le registre en dehors du
+# lockfile.
+RUN pnpm install --frozen-lockfile
+RUN pnpm exec turbo prune api --docker
 
 FROM base AS installer
 COPY --from=pruner /repo/out/json/ .

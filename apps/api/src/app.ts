@@ -5,6 +5,7 @@ import { ConsoleLogger } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { FastifyAdapter } from "@nestjs/platform-fastify";
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
+import type { FastifyRequest } from "fastify";
 import { LogController } from "fastify";
 import { AppModule } from "./app.module.js";
 import {
@@ -37,6 +38,19 @@ export async function createApp(
     logger: {
       level: config.LOG_LEVEL,
       ...(loggerStream ? { stream: loggerStream } : {}),
+      // N4 (audit-2.md) : le sérialiseur `req` par défaut de Fastify/pino
+      // (`fastify/lib/logger-pino.js`) journalise `url` (avec la query string complète — donc tout
+      // secret/PII passé en paramètre, ex. `?token=...`), `host` et `remoteAddress`/`remotePort`
+      // (adresse IP brute) — aucun de ces trois derniers champs n'est sur liste d'autorisation
+      // (`.claude/rules/backend.md` : « jamais d'email, téléphone, adresse, token, secret » ;
+      // `.claude/rules/security.md` : autorisation/logs par liste blanche). Remplacé par une liste
+      // explicite : uniquement la méthode et le chemin de la route, **sans** la query string.
+      serializers: {
+        req: (request: FastifyRequest) => ({
+          method: request.method,
+          url: request.url?.split("?")[0],
+        }),
+      },
     },
     // H2 : l'en-tête de corrélation devient l'identifiant de requête Fastify lui-même — généré
     // avant même le premier hook, et déjà présent (sous le libellé `correlationId`, pas `reqId`)

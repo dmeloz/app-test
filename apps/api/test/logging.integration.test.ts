@@ -108,6 +108,41 @@ describe("Logs de requête Fastify (H2 — correlationId, format JSON)", () => {
   });
 });
 
+describe("Sérialiseur `req` en liste d'autorisation (N4, audit-2.md)", () => {
+  it("aucune ligne de log ne contient la query string, l'IP ou le host bruts", async () => {
+    const stream = new MemoryLogStream();
+    const app = await bootTestApp(stream);
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/health/live?token=x",
+    });
+    expect(response.statusCode).toBe(200);
+
+    await app.close();
+
+    const rawOutput = stream.raw.join("");
+    expect(rawOutput).not.toContain("token=");
+    expect(rawOutput).not.toContain("remoteAddress");
+    expect(rawOutput).not.toContain("remotePort");
+
+    const lines = stream.lines();
+    const requestLines = lines.filter(
+      (line) => typeof line.msg === "string" && /request/i.test(line.msg),
+    );
+    expect(requestLines.length).toBeGreaterThanOrEqual(2);
+    for (const line of requestLines) {
+      if (line.req !== undefined) {
+        const req = line.req as Record<string, unknown>;
+        // Liste d'autorisation stricte : uniquement `method` et `url` (chemin, sans query string).
+        expect(Object.keys(req).sort()).toEqual(["method", "url"]);
+        expect(req.url).toBe("/health/live");
+        expect(req.method).toBe("GET");
+      }
+    }
+  });
+});
+
 describe("En-têtes de sécurité (Helmet, via createApp)", () => {
   it("toute réponse porte les en-têtes de sécurité attendus", async () => {
     const app = await bootTestApp();
