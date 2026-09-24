@@ -88,7 +88,14 @@ Options (coûts et conditions **à vérifier** avant choix, rien n'est activé s
    protéger l'accès (mot de passe ou lien non indexé).
 3. **Hébergeur suisse retenu plus tard (ADR 0012)** : anticipe le choix d'hébergement, plus de mise en place.
 
-Recommandation : option 2 avec accès protégé, en attendant l'ADR 0012. Le déploiement lui-même est une
+Recommandation : option 2 avec accès protégé, en attendant l'ADR 0012.
+
+**Décision D-P01-1 (porteur, 2026-09-24) : Netlify.** À vérifier par l'agent avant configuration, dans la
+documentation officielle : prise en charge de Next.js 16 (App Router, proxy/middleware utilisé par la CSP
+à nonce du L00) par le runtime Netlify, conditions de l'offre gratuite pour une démonstration, protection
+d'accès disponible (mot de passe / en-tête `X-Robots-Tag: noindex`). L'agent fournit `netlify.toml` et la
+procédure ; la création du compte et la connexion du dépôt sont faites par le porteur. Hébergement hors
+Suisse acceptable ici : aucune donnée personnelle ni réelle. Le déploiement lui-même est une
 action humaine (compte, domaine) ; l'agent prépare seulement la configuration et la documentation.
 
 ## 9. Plan de test
