@@ -33,6 +33,8 @@ jeté.
    l'arrivée d'une commande fictive.
 
 ### Principes de construction
+- **Référence visuelle** : `docs/design/inspirations.md` (R1 — cartes de statut colorées, pilules, cartes
+  de statistiques), à appliquer avec les adaptations listées (contraste AA, pas d'effet glass, tokens uniquement).
 - Composants dans `packages/ui` (boutons, carte produit, sélecteur d'options, barre de panier, carte de
   commande), stylés **uniquement par design tokens** (ADR 0015) ; un thème de démonstration dans
   `packages/ui/themes/demo`.
