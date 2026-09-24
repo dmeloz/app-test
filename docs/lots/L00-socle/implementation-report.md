@@ -16,6 +16,18 @@
   - `01552f7` — audit-1 : pnpm dev fonctionnel, décorateurs émis en mode dev (H6 + M4, passe A)
   - `67805c8` — audit-1 : CI durcie — permissions, actions épinglées par SHA, audit critique bloquant (H5, M6, L6, passe A)
   - `ea080e8` — audit-1 : retrait de la dépendance déclarée non importée @nestjs/testing (L3, passe A)
+  - `cef761b` — audit-1 : rapport d'implémentation corrigé, section Corrections audit 1 (H7, passe A)
+  - `acbef49` — fusionne main (PR #1) dans la branche de travail
+  - `1a4d06e` — audit-1 : corrige H3 — COPY tsconfig.base.json manquant après turbo prune (passe B1)
+  - `00d7f7d` — audit-1 : corrige H4 — image MinIO introuvable, remplacée par LocalStack S3 (passe B1)
+  - `6f1d6ec` — audit-1 : corrige H3 — job docker-api dépendant du job principal (passe B1)
+  - `1f2840c` — audit-1 : corrige L5 — .dockerignore exclut les fichiers .env (passe B1)
+  - `9373be0` — audit-1 : rapport d'implémentation — entrées H3 et L5 (passe B1)
+  - `7e337ec` — audit-1 : corrige M7 — image runtime minimale, arrêt propre, tini (passe B2)
+  - `8b8da28` — audit-1 : corrige M1 — CSP à nonce via proxy Next 16, rendu dynamique (passe B2)
+  - `e20999a` — audit-1 : corrige L4 — poweredByHeader, titres i18n, lang backoffice testé (passe B2)
+  - `6e6d12b` — audit-1 : corrige M2 — plugins Next natifs ciblés, règles typées (passe B2)
+  - `a07c84a` — audit-1 : corrige M8 — packages/* en ESM natif, liste d'autorisation domain étendue (passe B2)
   - (commit de cette mise à jour du rapport à suivre)
 
 **Ce rapport a été corrigé après l'audit 1** (`docs/lots/L00-socle/audit-1.md`, verdict
@@ -362,22 +374,29 @@ sortie, pas une citation de mémoire).
 | **H7** — le rapport d'implémentation citait des preuves non réelles | *(ce commit)* | Sections « `pnpm lint` (AC-L00-02, AC-L00-08) » et « Démarrage réel de l'API buildée (AC-L00-04, AC-L00-06) » réécrites ci-dessus avec le constat réel de l'audit et des preuves rejouées le 2026-09-24 ; tableau des AC corrigé (AC-06, AC-08) ; table des dépendances corrigée (`@app/domain`, `@nestjs/testing`, `tsx`). Le commentaire trompeur de `apps/api/src/worker.ts:38` avait déjà été corrigé au commit `c4d7a41` (passe A antérieure) — vérifié : le fichier référence désormais `worker.integration.test.ts`, qui existe et passe. |
 | **H3** — `api.Dockerfile` ne se construit pas après `turbo prune` (`tsconfig.base.json` absent) | `1a4d06e` (correctif), *(ce commit)* (preuve) | Preuve rejouée sans Docker le 2026-09-24 dans `sim-h3`/`sim-h3-build` (`turbo prune api --docker --out-dir sim-h3`, puis reproduction exacte des `COPY` du Dockerfile) : `pnpm install --frozen-lockfile` → `Done in 2s using pnpm v12.6.0` ; `pnpm turbo run build --filter=api...` → `api:build: $ tsc -p tsconfig.build.json` / `Tasks: 1 successful, 1 total`, `apps/api/dist/main.js` généré. Contre-épreuve négative (`sim-h3-build-neg`, `tsconfig.base.json` supprimé) : `error TS5083: Cannot read file '.../tsconfig.base.json'` reproduit à l'identique de l'audit, confirmant que le `COPY` est bien la cause et le correctif suffisant (seul `apps/api` est dans le sous-graphe, aucun autre `packages/*/tsconfig*.json` requis via `extends`). Job CI `docker-api` (`ci.yml:79-137`) ajouté par `1a4d06e`, complété (ce commit) par `needs: ci` pour ne construire l'image qu'après le job principal vert ; `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/ci.yml'))"` sans erreur. **Docker build réel (le `docker build`/`docker run` du job `docker-api`) reste à vérifier en CI** — le démon Docker n'est pas exploitable dans ce bac à sable (cf. AC-L00-03/H4). |
 | **L5** — `.dockerignore` sans `.env*` | `(ce commit)` | `.dockerignore` complété : `.env`, `.env.*`, `**/.env`, `**/.env.*`. Vérifié qu'aucun code de build/runtime ne lit `.env.example` (`grep -rn "\.env\.example"` hors `node_modules` : uniquement de la documentation et des scripts de garde-fous) — exclu aussi, sans exception. **Docker build réel à vérifier en CI** (job `docker-api`) pour confirmer que l'image se construit toujours correctement une fois `.env*` exclu du contexte. Les deux autres sous-points de L5 (images épinglées par tag et non par digest, patch postgres ancien) restent **hors périmètre de cette passe** — voir « Reste ouvert ». |
+| **M7** — image runtime Docker non minimale, arrêt non propre | `7e337ec` | `infra/docker/api.Dockerfile` : nouveau stage `deployer` (`pnpm --filter api deploy --prod --frozen-lockfile /repo/deploy`) puis nettoyage (`src`, `test`, `scripts`, `tsconfig*`, `.turbo`) ; stage `runtime` reconstruit depuis `node:24.21.0-alpine` propre (plus de pnpm/corepack/sources du monorepo), `COPY` **sans** `--chown` (racine reste propriétaire) puis `USER app`. Preuve par simulation hors Docker (démon bloqué), scratchpad `sim-m7` : `turbo prune api --docker` → `pnpm install --frozen-lockfile` (260 Mo, stage « installer ») → `pnpm turbo run build --filter=api...` → `pnpm --filter api deploy --prod --frozen-lockfile ../deploy-out2` (`reused 79, downloaded 0` : aucun accès réseau, store pnpm local réutilisé) → 40 Mo après déploiement, **aucun** `typescript`/`vitest`/`eslint`/`@playwright` dans `node_modules/.pnpm` du résultat (`ls node_modules/.pnpm \| grep -Ei "^(typescript\|vitest\|eslint\|@playwright)"` → vide). Copié dans `/opt/m7-sim` (permissions normales, contrairement au scratchpad en 700) : `su -s /bin/sh nobody -c "touch newfile.txt"` → `Permission denied` (fichiers non modifiables par un utilisateur non-root) ; `su -s /bin/sh nobody -c "node dist/main.js"` (uid 65534 confirmé par `ps -o uid`) → `curl /health/live` → `200 {"status":"ok"}`. `apps/api/src/app.ts` : `app.enableShutdownHooks(undefined, { useProcessExit: true })` (sans ce réglage, Nest se ré-envoie le signal reçu après nettoyage et le process sort avec code 143, pas 0 — constaté avant correctif) ; `apps/api/test/main-shutdown.integration.test.ts` (nouveau) exécute `dist/main.js` réel : `pnpm --filter api test` → 8 fichiers, 32 tests verts, dont ce nouveau test (SIGTERM → code 0, aucun signal, < 2 s — mesuré manuellement à 9-17 ms). |
+| **M1** — CSP des apps Next bloque les scripts inline de Next | `8b8da28` | `apps/{storefront,backoffice}/src/proxy.ts` (nouveau, remplace `middleware.ts` — convention dépréciée depuis Next 16, vérifiée dans `node_modules/next/dist/docs/.../proxy.md` embarquée par le paquet installé, avertissement de build reproduit avant correctif : « The "middleware" file convention is deprecated. Please use "proxy" instead. ») : CSP à nonce + `strict-dynamic`, posée sur la requête et la réponse ; `frame-ancestors 'none'`, `object-src 'none'`, `base-uri 'self'` conservés. `src/app/[locale]/layout.tsx` (les deux apps) : `await connection()` force le rendu dynamique par requête (requis par la doc Next 16 pour que le nonce soit injecté — sans cela, `● (SSG)` reste prégénéré au build sans nonce disponible ; confirmé par le changement de statut de route dans la sortie de build, `● (Static)` → `ƒ (Dynamic)`). Preuve par `curl` sur `next start` réel : l'en-tête `content-security-policy` contient `'nonce-<valeur>'`, et le même `nonce="<valeur>"` apparaît dans le HTML servi. `e2e/tests/security-headers.spec.ts` (nouveau) : `page.on('console')`/`pageerror` réels sur `/fr` et `/en` des deux apps → `pnpm test:e2e` : **9/9 verts** (deux exécutions consécutives), 0 erreur CSP/JS, en-têtes de sécurité vérifiés, nonce du HTML confirmé identique à celui de l'en-tête. Effet de bord corrigé au passage : `apps/{storefront,backoffice}/public/favicon.ico` (fichier ICO minimal valide, absent jusqu'ici) — sans lui, chaque page déclenchait un vrai 404 loggé en erreur console, bruitant ce nouveau test. |
+| **L4** — `X-Powered-By`, titres codés en dur, `lang` non testé côté backoffice | `e20999a` | `next.config.ts` (les deux apps) : `poweredByHeader: false` — vérifié par `curl -sD - http://127.0.0.1:3199/fr` sur `next start` réel : aucune ligne `x-powered-by` dans les en-têtes (avant correctif : `X-Powered-By: Next.js` présent). `src/app/[locale]/layout.tsx` : `generateMetadata` + `getDictionary(locale).title` remplace le `metadata` statique codé en dur (`metadata` ne peut pas dépendre de `params`, d'où le passage à la forme dynamique). `e2e/tests/pages.spec.ts` : ajoute `toHaveAttribute("lang", ...)` pour le back-office (absent jusqu'ici, seul le storefront l'avait) et `toHaveTitle(...)` pour les quatre pages (FR/EN × storefront/backoffice) — `pnpm test:e2e` : 9/9 verts. |
+| **M2** — couverture lint Next insuffisante, règles typées non activées | `6e6d12b` | `eslint.config.mjs` : `@next/eslint-plugin-next`, `eslint-plugin-react-hooks`, `eslint-plugin-jsx-a11y` utilisés **directement** (config native flat vérifiée dans `node_modules/eslint-config-next/dist/index.js` : `module.exports = [...]`, sans `@eslint/eslintrc`/FlatCompat) plutôt que le paquet agrégé `eslint-config-next` (qui embarque `eslint-plugin-import` et son propre résolveur, en conflit avec `eslint-plugin-import-x` déjà utilisé pour H1 — approche explicitement recommandée par la doc Next 16 dans ce cas, section « Migrating existing config → Using the plugin directly »). Scope strict `apps/storefront/**/*.{ts,tsx}` + `apps/backoffice/**/*.{ts,tsx}` (vérifié : `pnpm lint` sans avertissement `no-html-link-for-pages` une fois `settings.next.rootDir` ajouté par app). `@typescript-eslint/no-floating-promises`/`no-misused-promises` passées à `"error"` sur `**/*.{ts,tsx}` (project service). Fixtures `apps/storefront/src/__lint-fixtures-typed__/{img-element.tsx,floating-promise.ts}` (fichiers TypeScript valides, contrairement aux fixtures H1/M8 — restent dans le graphe type-aware normal). Preuve : `pnpm test:lint-boundaries` → **15/15 verts** (dont les 2 nouveaux cas : `@next/next/no-img-element` severity 1, `@typescript-eslint/no-floating-promises` severity 2) ; `pnpm lint` EXIT=0 sans avertissement ; `pnpm typecheck`/`build`/`test` 10/10 verts ; aucune violation trouvée dans le code applicatif réel (aucun `<img>`, aucune promesse flottante). |
+| **M8** — risques structurels pour L01 (ESM des paquets, liste d'autorisation domain) | `a07c84a` | `packages/{config,contracts,db,domain,i18n,testing,ui}/package.json` : `"type": "module"` + `exports` (`types` en premier). Sortie `dist/` vérifiée réellement ESM après rebuild (`cat packages/config/dist/index.js` → `export {};`, plus de wrapper `"use strict"; Object.defineProperty(exports, ...)`). `packages/domain/src/{index.ts,money/money.test.ts}` : imports relatifs avec extension `.js` explicite (requis par `module: "node16"` en mode ESM strict, même convention qu'`apps/api`). **Interopérabilité réelle prouvée** (non committée) : (1) symlink `apps/api/node_modules/@app/domain` → `packages/domain` (simulation d'un lien pnpm), `node --input-type=module -e "import('@app/domain')..."` depuis `apps/api` → résolu, `add(10.00 CHF, 2.50 CHF) = 1250 CHF`. (2) même symlink côté `apps/storefront`, import temporaire dans `page.tsx`, `pnpm --filter storefront build` (Turbopack) → sortie de build réelle : `M8 verification: 1250 CHF` pendant le prerender — aucune incompatibilité ESM/bundler Next. Les deux symlinks et le fichier temporaire ont été retirés après vérification (`git status --short` propre). `eslint.config.mjs` : ajoute `postgres`/`postgres/*` aux motifs interdits (manquant ; `ioredis`/`stripe` déjà présents mais sans fixture) ; `packages/domain/src/__lint-fixtures__/imports-{postgres,ioredis,stripe}.ts` (nouveau) + 3 cas dans `tools/eslint-boundaries.test.mjs` → **15/15 verts** (les six motifs du constat ont chacun une fixture testée). `packages/domain/package.json` toujours sans `dependencies`. |
 
-### Reste ouvert pour la passe B (hors périmètre de cette passe)
+### Reste ouvert (hors périmètre de cette passe B2)
 
 - **H4** — image MinIO introuvable sur Docker Hub, healthcheck `curl` absent de l'image.
-- **M1** — CSP des apps Next bloque les scripts inline de Next (erreurs console).
-- **M2** — couverture lint Next insuffisante, `eslint-config-next` non intégrée, règles typées
-  (`recommendedTypeChecked`) non activées.
-- **M7** — image runtime Docker non minimale, arrêt non propre (`tini`/`enableShutdownHooks`).
-- **M8** — risques structurels pour L01 (ESM des paquets, variables Turbo, liste d'autorisation
-  `domain`).
-- **L4** — `X-Powered-By`, titres codés en dur, `lang` non testé côté backoffice.
 - **L5 (reste)** — images Docker épinglées par tag et non par digest, patch postgres ancien
   (la partie `.dockerignore`/`.env*` est corrigée, voir table ci-dessus).
 - Nouvelle observation signalée ci-dessus (plantage natif de `node --watch` sur double signal
   d'arrêt en mode dev) : à investiguer, non bloquant pour H6/M4 (le mode dev démarre et sert du
   trafic correctement).
+- **Docker build réel** (image `api`, job CI `docker-api`) toujours non exécuté dans ce bac à sable
+  (démon bloqué) — la simulation M7 hors Docker ne remplace pas un `docker build` réel ; à confirmer
+  en CI ou par un humain avant fusion (cf. AC-L00-03/AC-L00-11, Question ouverte 4).
+- **Constat signalé (hors des 5 constats de cette passe, non corrigé)** : `pnpm test` (apps
+  `storefront`/`backoffice`) affiche un avertissement Vitest/Vite : « ESM syntax in a file loaded as
+  CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest
+  package.json ». **Confirmé pré-existant** (reproduit à l'identique sur un arbre de travail Git
+  isolé au commit `9373be0`, avant tout correctif de cette passe B2) — non introduit par M7/M1/L4/
+  M2/M8. N'affecte pas le résultat des tests (toujours verts). Signalé pour une passe ultérieure.
 
 ## Tests non exécutés et raison
 
@@ -424,14 +443,15 @@ sortie, pas une citation de mémoire).
    **Résolu depuis** (commit `9020ee5`, hors périmètre audité par `audit-1.md` — cf. note I2) : la
    règle `deny` a été remplacée par une liste explicite de fichiers de secrets, et `.env.example` a
    été créé. Écart conservé ici pour l'historique ; il ne reflète plus l'état actuel du dépôt.
-4. **Intégration `eslint-config-next` retirée.** `compat.extends("next/core-web-vitals")` (via
-   `@eslint/eslintrc`) provoque une erreur `TypeError: Converting circular structure to JSON` avec
-   ESLint 10.11.0 + `eslint-config-next` 16.3.6 dans cet environnement (bug d'interaction entre la
-   couche de compatibilité legacy et cette combinaison de versions très récentes). Les règles de
-   frontières de modules et TypeScript strict restent actives sur `apps/storefront` et
-   `apps/backoffice` ; les règles spécifiques Next (ex. `no-img-element`) et React
-   Hooks/jsx-a11y ne sont **pas** actives à ce lot. À reprendre dans un lot ultérieur (aucun AC-L00
-   ne les requiert explicitement).
+4. **Intégration `eslint-config-next` retirée (état initial, corrigé — voir M2, commit `6e6d12b`).**
+   `compat.extends("next/core-web-vitals")` (via `@eslint/eslintrc`) provoquait une erreur
+   `TypeError: Converting circular structure to JSON` avec ESLint 10.11.0 + `eslint-config-next`
+   16.3.6 dans cet environnement. **Résolu depuis** : plutôt que de forcer le paquet agrégé
+   `eslint-config-next` via la couche de compatibilité legacy, les plugins qu'il embarque
+   (`@next/eslint-plugin-next`, `eslint-plugin-react-hooks`, `eslint-plugin-jsx-a11y`) sont utilisés
+   directement en flat config natif, scopés à `apps/storefront`/`apps/backoffice` — approche
+   explicitement recommandée par la doc Next 16 pour éviter le conflit avec `eslint-plugin-import-x`
+   déjà en place (H1). Voir « Corrections audit 1 », entrée M2, pour le détail et les preuves.
 5. **`webServer` Playwright et `test:e2e`** : voir le détail dans « Commandes exécutées ». Le script
    `test:e2e` fait désormais `turbo run build --filter=storefront --filter=backoffice && playwright
    test ...` plutôt que de laisser Playwright construire les apps lui-même. Ajout des redirections
@@ -453,10 +473,16 @@ sortie, pas une citation de mémoire).
 
 ## Questions ouvertes
 
-1. Le porteur souhaite-t-il assouplir la règle `permissions.deny` sur `.env.*` pour permettre la
-   création de `.env.example` par un agent (voir écart 3) ?
-2. Faut-il réintégrer les règles ESLint spécifiques à Next.js (a11y, react-hooks, web-vitals) dans
-   ce lot ou les reporter à un lot frontend dédié (écart 4) ? Aucun AC-L00 ne les requiert.
+1. ~~Le porteur souhaite-t-il assouplir la règle `permissions.deny` sur `.env.*` pour permettre la
+   création de `.env.example` par un agent (voir écart 3) ?~~ **Devenue obsolète** : résolue depuis
+   le commit `9020ee5` (règle `deny` remplacée par une liste explicite de fichiers de secrets,
+   `.env.example` créé et présent dans le dépôt — vérifié : `ls .env.example` et
+   `.claude/hooks/test-guards.sh` `file_ok "/repo/.env.example"` passent tous les deux). Question
+   sans objet désormais.
+2. ~~Faut-il réintégrer les règles ESLint spécifiques à Next.js (a11y, react-hooks, web-vitals) dans
+   ce lot ou les reporter à un lot frontend dédié (écart 4) ?~~ **Résolue** : intégrées au lot L00
+   lui-même (constat M2, commit `6e6d12b`), scopées aux deux apps Next, sans les règles Core Web
+   Vitals renforcées (non demandées par un AC-L00).
 3. Confirmation souhaitée du porteur : la CI GitHub Actions n'a pas été déclenchée dans cette
    session (pas de push) — la première exécution réelle (format, lint, typecheck, tests, build,
    e2e, gitleaks) doit être surveillée à la première PR pour lever les incertitudes listées
