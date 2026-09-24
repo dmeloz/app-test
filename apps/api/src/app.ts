@@ -69,7 +69,14 @@ export async function createApp(
   registerCorrelationId(adapter.getInstance());
   await app.register(helmet);
   app.useGlobalFilters(new GlobalExceptionFilter());
-  app.enableShutdownHooks();
+  // M7 (audit-1.md) : `useProcessExit: true` fait sortir le process par `process.exit(0)` une fois
+  // le nettoyage terminé (hooks `onApplicationShutdown`, fermeture du serveur Fastify), plutôt que
+  // le comportement par défaut de Nest qui se ré-envoie le signal reçu (`process.kill(pid, signal)`)
+  // — ce dernier fait sortir le process AVEC le signal (code de sortie 128+n, ex. 143 pour SIGTERM),
+  // ambigu pour un orchestrateur (indiscernable d'un arrêt non propre). `process.exit()` garantit
+  // aussi que l'évènement `exit` est émis à temps pour vider les journaux (recommandation officielle
+  // NestJS, pertinente ici avec le logger Fastify/pino asynchrone).
+  app.enableShutdownHooks(undefined, { useProcessExit: true });
 
   return app;
 }

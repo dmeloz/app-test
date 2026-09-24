@@ -6,6 +6,14 @@
 #
 # Construire depuis la racine du monorepo :
 #   docker build -f infra/docker/api.Dockerfile -t restaurant-saas-api .
+# Lancer (API) :
+#   docker run --rm -p 3000:3000 --env-file .env restaurant-saas-api
+# Lancer (worker) :
+#   docker run --rm --env-file .env restaurant-saas-api node dist/worker.js
+# `tini` est déjà l'entrypoint de l'image (PID 1, forward des signaux + récupération des
+# processus zombies) : `docker run --init` n'est donc pas nécessaire avec cette image. Si une
+# image dérivée retire `tini`, ajouter `--init` au `docker run` est l'alternative documentée
+# (M7, audit-1.md).
 
 FROM node:24.21.0-alpine AS base
 RUN apk add --no-cache libc6-compat
@@ -31,19 +39,45 @@ COPY turbo.json ./turbo.json
 COPY tsconfig.base.json ./tsconfig.base.json
 RUN pnpm turbo run build --filter=api...
 
-FROM base AS runtime
+# M7 (audit-1.md) : `pnpm deploy --prod` matérialise dans un répertoire autonome UNIQUEMENT le
+# paquet `api` et ses dépendances de PRODUCTION résolues (`apps/api/package.json` → `dependencies`
+# seulement). Les outils de développement du monorepo (typescript, vitest, eslint,
+# @playwright/test, turbo…) présents dans `builder` n'y sont jamais copiés. `--frozen-lockfile`
+# interdit toute réécriture du lockfile déployé ; le store pnpm déjà peuplé par `installer` évite
+# tout accès réseau (preuve : simulation hors Docker dans le rapport d'implémentation, section M7 —
+# `reused 79, downloaded 0`). Le résultat est ensuite dépouillé des sources/tests/config qui ne
+# servent qu'au build (seuls `dist/`, `node_modules/` et `package.json` sont utiles à l'exécution).
+FROM builder AS deployer
+RUN pnpm --filter api deploy --prod --frozen-lockfile /repo/deploy \
+  && rm -rf /repo/deploy/src /repo/deploy/test /repo/deploy/scripts /repo/deploy/.turbo \
+    /repo/deploy/tsconfig.json /repo/deploy/tsconfig.build.json /repo/deploy/vitest.config.ts \
+    /repo/deploy/pnpm-lock.yaml /repo/deploy/pnpm-workspace.yaml
+
+# M7 : stage runtime reconstruit depuis `node:*-alpine` (pas `base`) — ni pnpm/corepack ni les
+# sources du monorepo n'y entrent jamais, seul le contenu autonome produit par `deployer`.
+FROM node:24.21.0-alpine AS runtime
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOST=0.0.0.0
 ENV LOG_LEVEL=info
+# `tini` : PID 1 propre — transmet SIGTERM/SIGINT au process Node et récupère les processus
+# zombies (bonne pratique standard des images de production, M7 audit-1.md).
+RUN apk add --no-cache libc6-compat tini
 RUN addgroup -S app && adduser -S app -G app
-WORKDIR /repo
-COPY --from=builder --chown=app:app /repo .
-USER app
 WORKDIR /repo/apps/api
+# M7 : PAS de `--chown=app:app` ici — les fichiers copiés restent la propriété de l'utilisateur de
+# build (root), avec les permissions par défaut (lecture/exécution pour tous, écriture pour le
+# seul propriétaire). L'utilisateur d'exécution `app` (non-root, activé juste après) peut donc lire
+# et exécuter le code livré mais ne peut ni le modifier ni y écrire quoi que ce soit.
+COPY --from=deployer /repo/deploy .
+USER app
 
 EXPOSE 3000
+# M7 : le port testé suit désormais `${PORT}` (forme shell : `HEALTHCHECK CMD <commande>` sans
+# tableau JSON est exécutée via `/bin/sh -c`, qui interpole les variables d'environnement) au lieu
+# du port `3000` codé en dur — un `docker run -e PORT=...` change bien le port sondé.
 HEALTHCHECK --interval=10s --timeout=3s --retries=5 \
-  CMD wget -qO- http://127.0.0.1:3000/health/live || exit 1
+  CMD wget -qO- http://127.0.0.1:${PORT}/health/live || exit 1
 
+ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["node", "dist/main.js"]
