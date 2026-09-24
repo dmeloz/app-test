@@ -15,6 +15,18 @@ Conditions (toutes requises) :
 
 Ne débloque que le **lot L00 (socle technique)**. Chaque lot suivant a sa propre validation de spec.
 
+## Réserves reportées (décision du porteur, 2026-09-24)
+
+Le lot L00 peut être fusionné sans ces deux vérifications locales, que le bac à sable de développement ne
+peut pas exécuter (démon Docker indisponible). La CI prouve déjà le build Docker réel de l'API et son
+démarrage. À lever **au plus tard avant le démarrage de l'implémentation du lot L01** (premier lot qui
+utilise réellement PostgreSQL via Compose) :
+
+- [ ] `docker compose -f infra/docker/compose.yaml up -d --wait` → 4 services healthy (PostgreSQL, Redis,
+      Mailpit, SeaweedFS), exécuté par le porteur sur un poste avec Docker.
+- [ ] Copie de `.env.example` vers `.env` puis `pnpm dev` → API, storefront et backoffice répondent,
+      exécuté par le porteur.
+
 ## Gate avant le lot paiement (L08)
 
 - [ ] Vérification écrite (documentation Stripe + compte test CH) : TWINT disponible sur les comptes
