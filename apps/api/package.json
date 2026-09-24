@@ -8,10 +8,10 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "dev": "tsx watch src/main.ts",
-    "dev:worker": "tsx watch src/worker.ts",
-    "start": "node dist/main.js",
-    "start:worker": "node dist/worker.js"
+    "dev": "node scripts/dev.mjs main",
+    "dev:worker": "node scripts/dev.mjs worker",
+    "start": "node --env-file-if-exists=../../.env dist/main.js",
+    "start:worker": "node --env-file-if-exists=../../.env dist/worker.js"
   },
   "dependencies": {
     "@fastify/helmet": "13.1.1",
@@ -27,7 +27,6 @@
     "@nestjs/testing": "12.1.0",
     "@swc/core": "1.16.2",
     "@types/node": "24.13.6",
-    "tsx": "4.23.15",
     "typescript": "6.0.3",
     "unplugin-swc": "2.0.0",
     "vitest": "5.0.1"

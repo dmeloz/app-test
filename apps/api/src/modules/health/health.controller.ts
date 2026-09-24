@@ -1,4 +1,5 @@
 import { Controller, Get, HttpCode, HttpStatus } from "@nestjs/common";
+import { HealthService } from "./health.service.js";
 
 interface LiveResponse {
   status: "ok";
@@ -15,6 +16,8 @@ interface ReadyResponse {
 
 @Controller("health")
 export class HealthController {
+  constructor(private readonly healthService: HealthService) {}
+
   @Get("live")
   @HttpCode(HttpStatus.OK)
   live(): LiveResponse {
@@ -24,6 +27,6 @@ export class HealthController {
   @Get("ready")
   @HttpCode(HttpStatus.OK)
   ready(): ReadyResponse {
-    return { status: "ok", checks: { config: "ok" } };
+    return { status: "ok", checks: this.healthService.checkReady() };
   }
 }
