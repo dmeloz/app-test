@@ -1,6 +1,6 @@
 import { ArgumentsHost, BadRequestException, NotFoundException } from "@nestjs/common";
 import { describe, expect, it, vi } from "vitest";
-import { GlobalExceptionFilter } from "./http-exception.filter";
+import { GlobalExceptionFilter } from "./http-exception.filter.js";
 
 function createHost(headers: Record<string, string | undefined>) {
   const reply = {

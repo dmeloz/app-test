@@ -1,6 +1,13 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from "@nestjs/common";
+import {
+  ArgumentsHost,
+  Catch,
+  ExceptionFilter,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from "@nestjs/common";
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { CORRELATION_ID_HEADER } from "../correlation/correlation";
+import { CORRELATION_ID_HEADER } from "../correlation/correlation.js";
 
 interface ErrorBody {
   error: {
@@ -81,10 +88,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         return { status, code, message: response };
       }
 
-      const { message, statusCode: _statusCode, error: _error, ...details } = response as Record<
-        string,
-        unknown
-      >;
+      const {
+        message,
+        statusCode: _statusCode,
+        error: _error,
+        ...details
+      } = response as Record<string, unknown>;
       const normalizedMessage = Array.isArray(message)
         ? message.join(", ")
         : typeof message === "string"

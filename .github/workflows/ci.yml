@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "24.21.0"
+  PNPM_VERSION: "12.6.0"
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Installer Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Installer les dépendances (lockfile verrouillé)
+        run: pnpm install --frozen-lockfile
+
+      - name: Format (vérification)
+        run: pnpm format:check
+
+      - name: Lint (frontières de modules incluses)
+        run: pnpm lint
+
+      - name: Typecheck (TypeScript strict)
+        run: pnpm typecheck
+
+      - name: Tests unitaires
+        run: pnpm test
+
+      - name: Garde-fous des agents (.claude/hooks)
+        run: .claude/hooks/test-guards.sh
+
+      - name: Scan de secrets (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Audit des dépendances (rapport, non bloquant au L00)
+        run: pnpm audit --prod || true
+
+      - name: Build de production
+        run: pnpm build
+
+      - name: Installer Playwright (Chromium)
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Tests e2e
+        run: pnpm test:e2e
+
+      - name: Publier le rapport Playwright en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

@@ -1,12 +1,13 @@
 import "reflect-metadata";
 import helmet from "@fastify/helmet";
 import { NestFactory } from "@nestjs/core";
-import { FastifyAdapter, NestFastifyAdapter } from "@nestjs/platform-fastify";
-import { AppModule } from "./app.module";
-import { registerCorrelationId } from "./common/correlation/correlation";
-import { GlobalExceptionFilter } from "./common/filters/http-exception.filter";
-import { log } from "./common/logger/json-logger";
-import { ConfigValidationError, loadConfig } from "./config/env.schema";
+import { FastifyAdapter } from "@nestjs/platform-fastify";
+import type { NestFastifyApplication } from "@nestjs/platform-fastify";
+import { AppModule } from "./app.module.js";
+import { registerCorrelationId } from "./common/correlation/correlation.js";
+import { GlobalExceptionFilter } from "./common/filters/http-exception.filter.js";
+import { log } from "./common/logger/json-logger.js";
+import { ConfigValidationError, loadConfig } from "./config/env.schema.js";
 
 function loadConfigOrExit(): ReturnType<typeof loadConfig> {
   try {
@@ -24,13 +25,17 @@ function loadConfigOrExit(): ReturnType<typeof loadConfig> {
 async function bootstrap(): Promise<void> {
   const config = loadConfigOrExit();
 
-  const adapter: NestFastifyAdapter = new FastifyAdapter({
+  const adapter = new FastifyAdapter({
     logger: { level: config.LOG_LEVEL },
   });
 
-  const app = await NestFactory.create(AppModule.register(config), adapter, {
-    bufferLogs: true,
-  });
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule.register(config),
+    adapter,
+    {
+      bufferLogs: true,
+    },
+  );
 
   registerCorrelationId(adapter.getInstance());
   await app.register(helmet);

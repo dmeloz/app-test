@@ -18,7 +18,10 @@ interface LocaleLayoutProps {
 
 // Root layout de l'App Router (aucun `app/layout.tsx` séparé, cf. ADR 0010 et modèle
 // « app-dir-i18n-routing » de Next.js) : `<html>`/`<body>` sont posés ici, une fois.
-export default async function LocaleLayout({ children, params }: LocaleLayoutProps): Promise<ReactNode> {
+export default async function LocaleLayout({
+  children,
+  params,
+}: LocaleLayoutProps): Promise<ReactNode> {
   const { locale } = await params;
   if (!isSupportedLocale(locale)) {
     notFound();

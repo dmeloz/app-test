@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FastifyRequest } from "fastify";
-import { extractOrGenerateCorrelationId } from "./correlation";
+import { extractOrGenerateCorrelationId } from "./correlation.js";
 
 function fakeRequest(headers: Record<string, string | string[] | undefined>): FastifyRequest {
   return { headers } as unknown as FastifyRequest;

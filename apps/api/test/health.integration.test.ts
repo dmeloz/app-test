@@ -1,11 +1,11 @@
-import { FastifyAdapter, NestFastifyAdapter } from "@nestjs/platform-fastify";
+import { FastifyAdapter } from "@nestjs/platform-fastify";
 import { Test } from "@nestjs/testing";
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { AppModule } from "../src/app.module";
-import { registerCorrelationId } from "../src/common/correlation/correlation";
-import { GlobalExceptionFilter } from "../src/common/filters/http-exception.filter";
-import { loadConfig } from "../src/config/env.schema";
+import { AppModule } from "../src/app.module.js";
+import { registerCorrelationId } from "../src/common/correlation/correlation.js";
+import { GlobalExceptionFilter } from "../src/common/filters/http-exception.filter.js";
+import { loadConfig } from "../src/config/env.schema.js";
 
 /**
  * Intégration légère (plan de test §9) : démarrage de l'API avec l'adaptateur Fastify réellement
@@ -20,7 +20,7 @@ describe("API (intégration légère, Fastify injecté)", () => {
       imports: [AppModule.register(config)],
     }).compile();
 
-    const adapter: NestFastifyAdapter = new FastifyAdapter();
+    const adapter = new FastifyAdapter();
     app = moduleRef.createNestApplication<NestFastifyApplication>(adapter);
     registerCorrelationId(adapter.getInstance());
     app.useGlobalFilters(new GlobalExceptionFilter());
@@ -61,7 +61,9 @@ describe("API (intégration légère, Fastify injecté)", () => {
   it("une route inconnue renvoie une 404 au format d'erreur standard", async () => {
     const response = await app.inject({ method: "GET", url: "/route-inexistante" });
     expect(response.statusCode).toBe(404);
-    const body = response.json() as { error: { code: string; message: string; correlationId: string } };
+    const body = response.json() as {
+      error: { code: string; message: string; correlationId: string };
+    };
     expect(body.error.code).toBe("NOT_FOUND");
     expect(typeof body.error.message).toBe("string");
     expect(typeof body.error.correlationId).toBe("string");

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ConfigValidationError, loadConfig } from "./env.schema";
+import { ConfigValidationError, loadConfig } from "./env.schema.js";
 
 describe("loadConfig", () => {
   it("accepte une configuration minimale valide et applique les valeurs par défaut", () => {

@@ -2,6 +2,7 @@
   "name": "api",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "description": "API NestJS + Fastify (/v1, webhooks, workers) — lot L00 : squelette + /health.",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",

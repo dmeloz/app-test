@@ -1,6 +1,7 @@
 import "reflect-metadata";
-import { log } from "./common/logger/json-logger";
-import { ConfigValidationError, loadConfig } from "./config/env.schema";
+import { fileURLToPath } from "node:url";
+import { log } from "./common/logger/json-logger.js";
+import { ConfigValidationError, loadConfig } from "./config/env.schema.js";
 
 /**
  * Point d'entrée du worker (effets de bord asynchrones — outbox, etc.). Au lot L00 : boucle vide,
@@ -20,7 +21,9 @@ function loadConfigOrExit(): ReturnType<typeof loadConfig> {
 
 export async function runWorker(signals: NodeJS.Process = process): Promise<void> {
   const config = loadConfigOrExit();
-  log("info", "Worker démarré (boucle vide, aucune tâche au lot L00)", { nodeEnv: config.NODE_ENV });
+  log("info", "Worker démarré (boucle vide, aucune tâche au lot L00)", {
+    nodeEnv: config.NODE_ENV,
+  });
 
   await new Promise<void>((resolve) => {
     const shutdown = (signal: string): void => {
@@ -33,11 +36,15 @@ export async function runWorker(signals: NodeJS.Process = process): Promise<void
 }
 
 /* c8 ignore start -- point d'entrée process, couvert par un test d'intégration (spawn + signal). */
-if (require.main === module) {
+const isMainModule =
+  process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1];
+if (isMainModule) {
   runWorker()
     .then(() => process.exit(0))
     .catch((error: unknown) => {
-      log("fatal", "Échec du worker", { error: error instanceof Error ? error.message : String(error) });
+      log("fatal", "Échec du worker", {
+        error: error instanceof Error ? error.message : String(error),
+      });
       process.exit(1);
     });
 }

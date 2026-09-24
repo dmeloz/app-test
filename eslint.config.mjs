@@ -2,13 +2,10 @@
 // Règles de frontières (ADR 0001) : une app n'importe pas une autre app ; un paquet n'importe pas
 // une app ; `packages/domain` reste pur (aucun framework).
 import js from "@eslint/js";
-import { FlatCompat } from "@eslint/eslintrc";
 import tseslint from "typescript-eslint";
 import importX from "eslint-plugin-import-x";
 import prettier from "eslint-config-prettier";
 import globals from "globals";
-
-const compat = new FlatCompat({ baseDirectory: import.meta.dirname });
 
 const FRAMEWORK_IMPORTS_FORBIDDEN_IN_DOMAIN = [
   "@nestjs",
@@ -88,18 +85,18 @@ export default tseslint.config(
           patterns: [
             {
               group: FRAMEWORK_IMPORTS_FORBIDDEN_IN_DOMAIN,
-              message: "packages/domain doit rester pur : aucune dépendance à un framework (ADR 0001).",
+              message:
+                "packages/domain doit rester pur : aucune dépendance à un framework (ADR 0001).",
             },
           ],
         },
       ],
     },
   },
-  // Règles Next.js pour les deux apps front (rgles de base uniquement, conflits web vitals via compat).
-  ...compat.extends("next/core-web-vitals").map((config) => ({
-    ...config,
-    files: ["apps/storefront/**/*.{ts,tsx}", "apps/backoffice/**/*.{ts,tsx}"],
-  })),
+  // NOTE (écart documenté dans le rapport d'implémentation) : l'intégration `eslint-config-next`
+  // via `@eslint/eslintrc` (FlatCompat) provoque une erreur ("Converting circular structure to
+  // JSON") avec ESLint 10 / eslint-config-next 16.3.6 dans cet environnement. Reporté à un lot
+  // ultérieur ; les règles de frontières et TypeScript strict restent actives sur les deux apps.
   {
     files: ["**/*.{js,mjs,cjs}"],
     ...tseslint.configs.disableTypeChecked,
@@ -113,8 +110,17 @@ export default tseslint.config(
       },
     },
     rules: {
-      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
     },
+  },
+  {
+    // Fichiers de configuration d'outillage et e2e, hors du `include` des tsconfig de paquet :
+    // lint syntaxique (pas de vérification de types via le project service TypeScript).
+    files: ["**/*.config.{ts,mts,cts}", "e2e/**/*.ts", "apps/api/test/**/*.ts"],
+    ...tseslint.configs.disableTypeChecked,
   },
   prettier,
 );

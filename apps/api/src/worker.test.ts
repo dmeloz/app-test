@@ -1,6 +1,6 @@
 import { EventEmitter } from "node:events";
 import { describe, expect, it } from "vitest";
-import { runWorker } from "./worker";
+import { runWorker } from "./worker.js";
 
 describe("runWorker", () => {
   it("démarre puis s'arrête proprement à la réception de SIGTERM (boucle vide)", async () => {
