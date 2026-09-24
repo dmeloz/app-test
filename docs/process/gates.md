@@ -10,7 +10,8 @@ Conditions (toutes requises) :
 - [x] Backlog des 30 premiers jours accepté (2026-09-24).
 - [x] Fichiers d'orchestration Claude Code présents et hooks testés (`.claude/hooks/test-guards.sh`, 31/31).
 - [x] Dépôt protégé : ruleset `protection-main` créé par le porteur le 2026-09-24 (suppression interdite, push forcé
-      interdit, PR obligatoire). **Reste à ajouter** : checks obligatoires `ci` et `docker-api` après le premier run CI.
+      interdit, PR obligatoire). Checks obligatoires `ci` et `docker-api` ajoutés par le porteur le 2026-09-24,
+      après le premier run CI vert (runs #1 et #2).
 
 Ne débloque que le **lot L00 (socle technique)**. Chaque lot suivant a sa propre validation de spec.
 
