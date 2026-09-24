@@ -4,7 +4,7 @@ name: restaurant-saas-dev
 
 services:
   postgres:
-    image: postgres:16.4-alpine
+    image: postgres:16.15-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: app_dev
@@ -32,7 +32,7 @@ services:
       retries: 10
 
   mailpit:
-    image: axllent/mailpit:v1.20.3
+    image: axllent/mailpit:v1.20.7
     restart: unless-stopped
     ports:
       - "127.0.0.1:8025:8025" # UI web
@@ -43,24 +43,34 @@ services:
       timeout: 5s
       retries: 10
 
-  minio:
-    image: minio/minio:RELEASE.2024-08-29T01-40-52Z
+  # H4 (audit-1.md) : `minio/minio:RELEASE.2024-08-29T01-40-52Z` est introuvable sur Docker Hub —
+  # le dépôt `minio/minio` lui-même n'existe plus (`GET /v2/repositories/minio/minio/` → 404 le
+  # 2026-09-24). Remplacé par LocalStack (service S3 uniquement), voir la justification et la
+  # méthode de vérification dans `docs/architecture/self-hosting.md` (section « Stockage S3 en
+  # développement »).
+  s3:
+    image: localstack/localstack:2026.08.4
     restart: unless-stopped
-    command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: dev-only-access-key
-      MINIO_ROOT_PASSWORD: dev-only-secret-key
+      SERVICES: s3
+      AWS_DEFAULT_REGION: eu-central-1
+      # Identifiants factices : LocalStack ne vérifie aucune signature réelle en développement.
+      AWS_ACCESS_KEY_ID: dev-only-access-key
+      AWS_SECRET_ACCESS_KEY: dev-only-secret-key
     ports:
-      - "127.0.0.1:9000:9000" # API S3
-      - "127.0.0.1:9001:9001" # console web
+      - "127.0.0.1:4566:4566" # port "edge" unique : API S3 (et les autres API AWS émulées, non utilisées ici)
     volumes:
-      - minio_data:/data
+      - s3_data:/var/lib/localstack
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/live"]
+      # Commande officielle de l'image (voir `HEALTHCHECK` dans le Dockerfile amont) : réutilisée
+      # telle quelle plutôt que de deviner un binaire, car vérifiée présente (justification dans
+      # self-hosting.md).
+      test:
+        ["CMD", "/opt/code/localstack/.venv/bin/localstack", "status", "services", "--format=json"]
       interval: 5s
       timeout: 5s
       retries: 10
 
 volumes:
   postgres_data:
-  minio_data:
+  s3_data:
