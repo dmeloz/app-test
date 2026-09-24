@@ -15,7 +15,7 @@
     "lint": "eslint .",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "test:e2e": "playwright test --config e2e/playwright.config.ts",
+    "test:e2e": "turbo run build --filter=storefront --filter=backoffice && playwright test --config e2e/playwright.config.ts",
     "build": "turbo run build",
     "dev": "turbo run dev --parallel"
   },

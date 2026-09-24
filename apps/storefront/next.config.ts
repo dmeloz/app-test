@@ -17,6 +17,10 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: SECURITY_HEADERS }];
   },
+  // `/` redirige vers `/fr` (défaut FR — la négociation Accept-Language complète est prévue au L05).
+  async redirects() {
+    return [{ source: "/", destination: "/fr", permanent: false }];
+  },
 };
 
 export default nextConfig;
