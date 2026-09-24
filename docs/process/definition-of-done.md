@@ -18,6 +18,7 @@ Un lot est terminé seulement si :
 - [ ] Aucun constat BLOCKER ou HIGH ouvert.
 - [ ] Verdict `auditor-opus` : `APPROVED` (et `security-opus` pour un lot critique).
 - [ ] Heures humaines du lot renseignées.
-- [ ] Un humain a autorisé la fusion (et, séparément, la production).
+- [ ] Fusion par le fil principal selon la règle 11 de `CLAUDE.md` (audit indépendant `APPROVED`, CI verte, aucun
+      conflit) ; la mise en production reste soumise à une autorisation humaine explicite.
 
 Chaque case cochée renvoie à une preuve : commande exécutée + extrait de sortie, ou lien vers le fichier.

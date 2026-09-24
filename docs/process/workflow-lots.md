@@ -10,7 +10,8 @@ jusqu'à la fin ».
 4. OPUS    audite                  diff, sécurité, multi-tenant, paiements, régressions, qualité des tests
 5. SONNET  corrige                 tous les BLOCKER et HIGH (MEDIUM : corrigés ou justifiés)
 6. OPUS    valide définitivement   contre-audit → APPROVED
-7. HUMAIN  autorise                fusion puis déploiement
+7. OPUS    fusionne               PR fusionnée si audit APPROVED + CI verte + aucun conflit (règle 11)
+8. HUMAIN  autorise                déploiement de production
 ```
 
 ## Rôles et outils
@@ -24,7 +25,8 @@ jusqu'à la fin ».
 | 4 | Opus | sous-agents `auditor-opus` (+ `security-opus` si lot critique) | `audit-1.md` (+ `security-1.md`) |
 | 5 | Sonnet | sous-agent `developer-sonnet` avec la liste des constats | commits + rapport mis à jour |
 | 6 | Opus | sous-agent `auditor-opus` (contre-audit) | `audit-2.md` → `APPROVED` |
-| 7 | Humain | revue de la PR, fusion, déploiement | PR fusionnée, journal de déploiement |
+| 7 | Opus (fil principal) | fusion de la PR (merge commit) si audit `APPROVED`, checks `ci` + `docker-api` verts, aucun conflit | PR fusionnée, commentaire de fusion citant l'audit |
+| 8 | Humain | autorisation du déploiement de production | journal de déploiement |
 
 Les boucles 4 → 5 → 6 se répètent tant que le verdict n'est pas `APPROVED`. Au-delà de 3 boucles sur un
 même constat, Opus remonte le problème à l'humain (probable défaut de spécification).

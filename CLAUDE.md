@@ -64,7 +64,9 @@ docker compose -f infra/docker/compose.yaml up -d
 8. Les commandes conservent un snapshot immuable (produits, options, prix, taxes, libellés, zone, frais).
 9. Migrations destructives : sauvegarde + stratégie + retour arrière documentés, validation humaine.
 10. Aucune information allergène générée ou déduite sans validation humaine du restaurant.
-11. Aucun déploiement production, fusion sur `main`, push forcé ou réécriture d'historique par un agent.
+11. Aucun déploiement production, push direct sur `main`, push forcé ou réécriture d'historique par un agent.
+    Fusion d'une PR dans `main` par le fil principal autorisée (porteur, 2026-09-24) uniquement si :
+    audit indépendant `APPROVED`, checks `ci` + `docker-api` verts sur la tête, aucun conflit, PR non brouillon.
 12. Ne jamais supprimer une fonction existante sans demande explicite.
 13. Ne jamais inventer un résultat de commande ou de test : seules les sorties réellement exécutées comptent.
 14. Signaler explicitement : fait vérifié / hypothèse / estimation / décision à valider.
@@ -85,7 +87,9 @@ SONNET : corriger tous les BLOCKER et HIGH
   ↓
 OPUS : contre-audit → APPROVED
   ↓
-HUMAIN : fusion / déploiement
+OPUS (fil principal) : fusion de la PR si toutes les conditions de la règle 11 sont réunies
+  ↓
+HUMAIN : déploiement de production
 ```
 
 - Le fil principal (Opus) garde la vision, arbitre, et délègue l'implémentation à `developer-sonnet`.
@@ -98,7 +102,7 @@ HUMAIN : fusion / déploiement
 Critères d'acceptation satisfaits · typecheck, lint, tests unitaires/intégration/e2e critiques verts ·
 build de production OK · migrations testées + rollback documenté · isolation multi-tenant prouvée ·
 logs/métriques présents · docs à jour · aucun secret exposé · aucun BLOCKER/HIGH ouvert ·
-verdict Opus `APPROVED` · autorisation humaine de fusion. Détail : `docs/process/definition-of-done.md`.
+verdict Opus `APPROVED` · CI verte · fusion par le fil principal (règle 11). Détail : `docs/process/definition-of-done.md`.
 
 ## Git
 
