@@ -81,6 +81,7 @@ jobs:
     # (`tsconfig.base.json` absent après `turbo prune`) n'a été détectée que par simulation
     # manuelle hors Docker. Ce job construit réellement l'image (sans push, aucun registre
     # distant) et vérifie l'exécution non-root + `/health/live`.
+    needs: ci
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
