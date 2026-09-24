@@ -25,6 +25,7 @@ un seul thème, pas de PWA hors ligne au pilote.
 | Lot | Contenu | Critique | Charge |
 |---|---|---|---|
 | L00 | Socle : monorepo pnpm/Turborepo, TS strict, lint/format, Vitest, Playwright, Compose (PG, Redis, Mailpit, MinIO), CI GitHub Actions (sans déploiement), squelettes des 3 apps, `/health` | non | 1–1,5 |
+| P01 | Maquette cliquable de démonstration (4 écrans, données fictives, aucun paiement) — pour démarcher un pilote | non | 1–1,5 |
 | L01 | Fondation DB : rôles PG, Drizzle, migrations, tenant/restaurant/location/domain, RLS forcée, contexte transactionnel, harnais de tests d'isolation | **oui** | 1,5–2,5 |
 | L02 | Identité personnel : OIDC, sessions, MFA obligatoire par rôle, memberships, RBAC, réauthentification, `audit_log` | **oui** | 1,5–2,5 |
 | L03 | Restaurant et établissement : coordonnées, horaires, fermetures exceptionnelles, canaux, pause | non | 1–1,5 |
@@ -39,4 +40,4 @@ un seul thème, pas de PWA hors ligne au pilote.
 | L12 | Notifications e-mail bilingues via outbox, journal d'envoi, dédup | non | 1–1,5 |
 | L13 | Reporting, export CSV, observabilité (OTel, alertes), sauvegardes + test de restauration, staging | **oui** | 1,5–2,5 |
 | L14 | Durcissement, e2e complet, revue security-opus globale, recette pilote | **oui** | 1,5–2 |
-| | **Total phase 2** | | **22–36** |
+| | **Total phase 2** | | **23–37,5** |
