@@ -140,7 +140,10 @@ export function useCartStore(): StoreApi {
     mutate((current) => ({ ...current, lines: [...current.lines, line] }));
   }, []);
   const removeLine = useCallback((lineId: string) => {
-    mutate((current) => ({ ...current, lines: current.lines.filter((line) => line.lineId !== lineId) }));
+    mutate((current) => ({
+      ...current,
+      lines: current.lines.filter((line) => line.lineId !== lineId),
+    }));
   }, []);
   const setSlot = useCallback((slotId: string | null) => {
     mutate((current) => ({ ...current, slotId, asap: slotId === null ? current.asap : false }));
@@ -166,7 +169,10 @@ export function useCartStore(): StoreApi {
       if (!current.order) {
         return current;
       }
-      return { ...current, order: { ...current.order, status: nextOrderStatus(current.order.status) } };
+      return {
+        ...current,
+        order: { ...current.order, status: nextOrderStatus(current.order.status) },
+      };
     });
   }, []);
   const resetDemo = useCallback(() => {

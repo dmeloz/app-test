@@ -49,7 +49,9 @@ export function HomeScreen({
         <h1 className="ui-heading-xl">{dictionary.heading}</h1>
         <p className="ui-text-muted">{tagline}</p>
         <p>
-          <span className={`ui-status ${restaurant.isOpen ? "ui-status--ready" : "ui-status--paused"}`}>
+          <span
+            className={`ui-status ${restaurant.isOpen ? "ui-status--ready" : "ui-status--paused"}`}
+          >
             {restaurant.isOpen ? dictionary.statusOpen : dictionary.statusClosed}
           </span>
         </p>

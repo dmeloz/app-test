@@ -66,9 +66,7 @@ function ProductRow({ product, locale, dictionary, onAdd }: ProductRowProps): Re
   );
   const [showError, setShowError] = useState(false);
 
-  const allValid = configs.every((config) =>
-    isSelectionValid(config, selections[config.id] ?? []),
-  );
+  const allValid = configs.every((config) => isSelectionValid(config, selections[config.id] ?? []));
 
   function handleToggle(config: OptionGroupConfig, choiceId: string): void {
     setSelections((current) => ({

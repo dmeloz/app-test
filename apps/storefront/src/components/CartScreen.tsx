@@ -109,7 +109,11 @@ export function CartScreen({ locale, dictionary, menu, slots }: CartScreenProps)
         <section className="ui-stack ui-stack--sm">
           <h2 className="ui-heading-lg">{dictionary.slotHeading}</h2>
           <label className="ui-slot">
-            <input type="checkbox" checked={asap} onChange={(event) => setAsap(event.target.checked)} />
+            <input
+              type="checkbox"
+              checked={asap}
+              onChange={(event) => setAsap(event.target.checked)}
+            />
             <span>{dictionary.asapLabel}</span>
           </label>
           {!asap ? (

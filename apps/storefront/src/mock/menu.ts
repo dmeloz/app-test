@@ -71,7 +71,11 @@ export const menu: readonly MockCategory[] = [
             min: 0,
             max: 2,
             choices: [
-              { id: "fromage", label: { fr: "Fromage fondu", en: "Melted cheese" }, priceCents: 250 },
+              {
+                id: "fromage",
+                label: { fr: "Fromage fondu", en: "Melted cheese" },
+                priceCents: 250,
+              },
               { id: "bacon", label: { fr: "Bacon", en: "Bacon" }, priceCents: 300 },
               { id: "avocat", label: { fr: "Avocat", en: "Avocado" }, priceCents: 200 },
             ],
@@ -93,8 +97,16 @@ export const menu: readonly MockCategory[] = [
             min: 0,
             max: 2,
             choices: [
-              { id: "parmesan-extra", label: { fr: "Parmesan extra", en: "Extra parmesan" }, priceCents: 200 },
-              { id: "truffe", label: { fr: "Copeaux de truffe", en: "Truffle shavings" }, priceCents: 450 },
+              {
+                id: "parmesan-extra",
+                label: { fr: "Parmesan extra", en: "Extra parmesan" },
+                priceCents: 200,
+              },
+              {
+                id: "truffe",
+                label: { fr: "Copeaux de truffe", en: "Truffle shavings" },
+                priceCents: 450,
+              },
             ],
           },
         ],
