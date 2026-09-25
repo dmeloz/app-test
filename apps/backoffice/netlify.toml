@@ -1,0 +1,19 @@
+# Configuration Netlify — site « backoffice » (maquette de démonstration P01, décision D-P01-1).
+#
+# HYPOTHÈSE — À VÉRIFIER PAR LE PORTEUR DANS LA DOCUMENTATION OFFICIELLE avant toute connexion réelle
+# du dépôt — voir `apps/storefront/netlify.toml` (mêmes réserves) et
+# `docs/lots/P01-maquette/deploiement-netlify.md`.
+#
+# Second site Netlify du même dépôt (ADR 0010), créé avec le répertoire de base `apps/backoffice`.
+[build]
+  base = "apps/backoffice"
+  command = "cd ../.. && pnpm install --frozen-lockfile && pnpm exec turbo run build --filter=backoffice"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "24"
+
+# HYPOTHÈSE : voir `apps/storefront/netlify.toml` — mêmes réserves sur `proxy.ts` et le rendu
+# dynamique par requête.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

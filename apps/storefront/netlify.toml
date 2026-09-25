@@ -1,0 +1,32 @@
+# Configuration Netlify — site « storefront » (maquette de démonstration P01, décision D-P01-1).
+#
+# HYPOTHÈSE — À VÉRIFIER PAR LE PORTEUR DANS LA DOCUMENTATION OFFICIELLE (docs.netlify.com,
+# netlify.com) avant toute connexion réelle du dépôt : le fil principal n'a pas pu consulter cette
+# documentation (proxy réseau de l'environnement de développement bloque ces domaines). Voir
+# `docs/lots/P01-maquette/deploiement-netlify.md` pour le détail des points non vérifiés (prise en
+# charge de Next.js 16 / `proxy.ts` par le runtime Netlify, conditions de l'offre gratuite pour un
+# usage de démonstration commerciale, disponibilité de la protection par mot de passe).
+#
+# Monorepo pnpm/Turborepo à deux sites Netlify distincts (ADR 0010 : storefront et backoffice restent
+# deux applications séparées, jamais fusionnées) : ce fichier est utilisé quand le site Netlify est
+# créé avec le répertoire de base (« Base directory ») `apps/storefront` — Netlify cherche alors un
+# `netlify.toml` dans ce répertoire avant la racine du dépôt (comportement documenté pour les
+# monorepos — HYPOTHÈSE, non revérifiée ici). Voir `apps/backoffice/netlify.toml` pour l'autre site.
+[build]
+  base = "apps/storefront"
+  # Installe tout l'espace de travail pnpm (le gestionnaire de paquets remonte jusqu'à
+  # `pnpm-workspace.yaml`, quel que soit le répertoire courant) puis construit uniquement
+  # `storefront` et ses dépendances internes (`@app/ui`) via Turborepo (`^build`, voir `turbo.json`).
+  command = "cd ../.. && pnpm install --frozen-lockfile && pnpm exec turbo run build --filter=storefront"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "24"
+
+# HYPOTHÈSE : le module officiel de build Next.js de Netlify (détection automatique du framework, ou
+# `@netlify/plugin-nextjs` explicite ci-dessous) gère le rendu dynamique par requête (`connection()`,
+# CSP à nonce, `src/proxy.ts`) utilisé par cette app — à confirmer par le porteur avant publication,
+# en particulier la prise en charge de `proxy.ts` (la convention `middleware.ts` est dépréciée depuis
+# Next 16, voir le commentaire de tête de `apps/storefront/src/proxy.ts`).
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
