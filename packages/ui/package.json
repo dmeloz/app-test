@@ -2,7 +2,7 @@
   "name": "@app/ui",
   "version": "0.0.0",
   "private": true,
-  "description": "Design system et moteur de thème (tokens CSS). Vide au lot L00.",
+  "description": "Design system et moteur de thème (tokens CSS). Lot P01 : composants et thème de démonstration.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,8 +17,16 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
+  "peerDependencies": {
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
   "devDependencies": {
     "@types/node": "24.13.6",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
     "typescript": "6.0.3",
     "vitest": "5.0.1"
   }
