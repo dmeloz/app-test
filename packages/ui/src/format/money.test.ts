@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 import { formatMoney, MoneyFormatError } from "./money.js";
 
 // Valeurs attendues vérifiées contre la sortie réelle de `Intl.NumberFormat` (ICU embarqué dans
-// Node) — jamais devinées (règle n°13 du CLAUDE.md). ` ` = espace insécable, ` ` = espace
-// fine insécable (séparateur de milliers ICU pour `fr-CH`).
+// Node) — jamais devinées (règle n°13 du CLAUDE.md). Les chaînes attendues contiennent de vraies
+// espaces insécables (U+00A0, U+202F, séparateurs ICU) ; `no-irregular-whitespace` ignore par défaut
+// les littéraux de chaîne (`skipStrings`), donc aucune dérogation n'est nécessaire ici.
 describe("formatMoney", () => {
   it("formate un montant CHF en fr-CH (montant puis code devise)", () => {
     expect(formatMoney(1250, "CHF", "fr-CH")).toBe("12.50 CHF");
@@ -18,9 +19,7 @@ describe("formatMoney", () => {
   });
 
   it("gère un grand montant avec le séparateur de milliers attendu par locale", () => {
-    expect(formatMoney(123456789, "CHF", "fr-CH")).toBe(
-      `1 234 567.89 CHF`,
-    );
+    expect(formatMoney(123456789, "CHF", "fr-CH")).toBe("1 234 567.89 CHF");
     expect(formatMoney(123456789, "CHF", "en-CH")).toBe("CHF 1'234'567.89");
   });
 

@@ -44,8 +44,7 @@ export const demoTheme: DesignTokens = {
     xl: "32px",
   },
   font: {
-    family:
-      '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+    family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
     sizeSm: "0.875rem",
     sizeMd: "1rem",
     sizeLg: "1.25rem",
