@@ -33,7 +33,9 @@ test("parcours client démo — accueil → menu → panier → paiement simulé
 
   // 1. Accueil.
   await page.goto(`${STOREFRONT_URL}/fr`);
-  await expect(page.getByRole("heading", { name: "Le Belvédère Imaginaire", level: 1 })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Le Belvédère Imaginaire", level: 1 }),
+  ).toBeVisible();
 
   // 2. Choix du canal « Retrait » → navigue vers le menu.
   await page.getByRole("button", { name: "Retrait" }).click();

@@ -66,7 +66,13 @@ docker compose -f infra/docker/compose.yaml up -d
 10. Aucune information allergène générée ou déduite sans validation humaine du restaurant.
 11. Aucun déploiement production, push direct sur `main`, push forcé ou réécriture d'historique par un agent.
     Fusion d'une PR dans `main` par le fil principal autorisée (porteur, 2026-09-24) uniquement si :
-    audit indépendant `APPROVED`, checks `ci` + `docker-api` verts sur la tête, aucun conflit, PR non brouillon.
+    audit indépendant `APPROVED` (G2 : tous les audits requis par `workflow-lots.md` — `security-opus` en
+    plus d'`auditor-opus` pour un lot critique —, portant sur le SHA effectivement fusionné ; tout commit
+    postérieur à l'audit est soit lui-même audité, soit strictement limité à la documentation), checks
+    `ci` + `docker-api` nommés verts sur la tête, aucun conflit, PR non brouillon, et (G3) toutes les
+    approbations humaines obligatoires listées dans `workflow-lots.md` déjà obtenues avant la fusion.
+    Contournement des checks interdit (G4) : jamais de fusion administrative (`gh pr merge --admin` ou
+    équivalent), jamais de modification/suppression du ruleset ou de la protection de branche pour fusionner.
 12. Ne jamais supprimer une fonction existante sans demande explicite.
 13. Ne jamais inventer un résultat de commande ou de test : seules les sorties réellement exécutées comptent.
 14. Signaler explicitement : fait vérifié / hypothèse / estimation / décision à valider.

@@ -132,6 +132,34 @@ bash_block "psql -c 'DROP TABLE orders'"
 bash_block "tofu apply"
 bash_block "terraform destroy"
 bash_block "kubectl get pods"
+# N17 (audit-7) : faux marqueurs de fin de heredoc pour la règle .env (mode « stripped ») — bash
+# exige une correspondance EXACTE de la ligne de terminaison pour un `<<` simple (aucun espace de
+# tête ni de fin toléré, vérifié dans cet environnement réel) ; seul `<<-` tolère des tabulations de
+# tête. En cas de doute, le corps reste dans le heredoc (conservé, non fuité vers le texte vérifié).
+bash_ok    $'cat > doc.md <<\'EOF\'\n  EOF\nne jamais lire .env\nEOF'
+bash_ok    $'cat > doc.md <<\'EOF\'\nEOF   \nne jamais lire .env\nEOF'
+bash_ok    $'cat > doc.md <<\'EOF\'\n\tEOF\nne jamais lire .env\nEOF'
+bash_block $'cat > doc.md <<-\'EOF\'\n\t\tEOF\nne jamais lire .env\nEOF'
+bash_ok    $'cat > doc.md <<-\'EOF\'\n  EOF\nne jamais lire .env\nEOF'
+
+# G4 (audit-7, gouvernance) : contournement des checks obligatoires avant fusion interdit, y compris
+# via l'API GitHub (règle 11 du CLAUDE.md).
+bash_block "gh pr merge 123 --admin"
+bash_block "gh pr merge --admin --squash 123"
+bash_ok    "gh pr merge 123 --squash"
+bash_ok    "gh pr merge 123 --auto --squash"
+bash_block "gh api -X PUT repos/acme/app/rulesets/1"
+bash_block "gh api --method DELETE repos/acme/app/branches/main/protection"
+bash_block "gh api -X POST /repos/acme/app/rulesets"
+bash_block "gh api -X PATCH repos/acme/app/branches/main/protection"
+bash_ok    "gh api repos/acme/app/rulesets"
+bash_ok    "gh api -X GET repos/acme/app/branches/main/protection"
+bash_ok    "gh api repos/acme/app/pulls/1"
+bash_block "gh ruleset delete 1"
+bash_block "gh ruleset edit 1"
+bash_ok    "gh ruleset list"
+bash_ok    "gh ruleset view 1"
+
 file_ok    "/repo/src/main.ts"
 file_ok    "/repo/.env.example"
 file_block "/repo/.env"
