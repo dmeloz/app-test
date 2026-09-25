@@ -114,7 +114,9 @@ function ProductRow({ product, locale, dictionary, onAdd }: ProductRowProps): Re
               formatSurcharge={(cents) => formatChf(cents, locale)}
               includedLabel={dictionary.includedChoice}
               hint={config.min > 0 ? dictionary.requiredHint : dictionary.optionalHint}
-              showError={showError}
+              // Le message d'erreur ne s'affiche que sur le(s) groupe(s) réellement invalide(s)
+              // (ex. la cuisson obligatoire), pas sur un groupe optionnel déjà valide à 0 sélection.
+              showError={showError && !isSelectionValid(config, selections[config.id] ?? [])}
               errorText={dictionary.selectionError}
             />
           ))}

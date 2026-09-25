@@ -8,10 +8,15 @@ import type { NextConfig } from "next";
 // sans nonce. Elle est désormais calculée par requête dans `src/proxy.ts` (modèle officiel Next 16,
 // nonce + `strict-dynamic`), qui pose l'en-tête `Content-Security-Policy` complet (incluant
 // `frame-ancestors 'none'`, `object-src 'none'`, `base-uri 'self'`).
+// P01 (D-P01-1) : la maquette de démonstration est publiée hors production (Netlify) et ne doit
+// jamais être indexée par un moteur de recherche ni suivie via ses liens — sur toutes les routes,
+// avant même la protection d'accès mise en place par le porteur (voir
+// `docs/lots/P01-maquette/deploiement-netlify.md`).
 const SECURITY_HEADERS = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "X-Robots-Tag", value: "noindex, nofollow" },
 ];
 
 const nextConfig: NextConfig = {

@@ -46,6 +46,8 @@ for (const app of APPS) {
         expect(headers["content-security-policy"]).toContain("base-uri 'self'");
         expect(headers["x-content-type-options"]).toBe("nosniff");
         expect(headers["referrer-policy"]).toBeTruthy();
+        // P01 (D-P01-1) : la maquette de démonstration ne doit jamais être indexée, sur aucune route.
+        expect(headers["x-robots-tag"]).toBe("noindex, nofollow");
 
         const cspErrors = consoleErrors.filter((text) =>
           /content security policy|refused to (execute|load|apply)/i.test(text),
