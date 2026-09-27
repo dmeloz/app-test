@@ -7,6 +7,15 @@
 # charge de Next.js 16 / `proxy.ts` par le runtime Netlify, conditions de l'offre gratuite pour un
 # usage de démonstration commerciale, disponibilité de la protection par mot de passe).
 #
+# L7 (audit-1.md) — HYPOTHÈSES SUPPLÉMENTAIRES, À VÉRIFIER PAR LE PORTEUR :
+# - `pnpm@12.6.0` (`packageManager` du `package.json` racine) : Netlify active généralement Corepack
+#   à partir de ce champ pour installer la version de pnpm exacte qu'il déclare, mais la prise en
+#   charge réelle par l'image de build Netlify (et de Corepack lui-même sur cette image) n'a pas pu
+#   être confirmée dans la documentation officielle (accès bloqué, voir ci-dessus).
+# - Node >= 24.21.0 (`engines.node` du `package.json` racine) : `NODE_VERSION = "24"` ci-dessous ne
+#   fixe qu'une branche majeure ; la disponibilité précise de 24.21.0 (ou plus récent dans la même
+#   branche) sur l'image de build Netlify n'a pas pu être confirmée non plus.
+#
 # Monorepo pnpm/Turborepo à deux sites Netlify distincts (ADR 0010 : storefront et backoffice restent
 # deux applications séparées, jamais fusionnées) : ce fichier est utilisé quand le site Netlify est
 # créé avec le répertoire de base (« Base directory ») `apps/storefront` — Netlify cherche alors un
@@ -28,5 +37,23 @@
 # CSP à nonce, `src/proxy.ts`) utilisé par cette app — à confirmer par le porteur avant publication,
 # en particulier la prise en charge de `proxy.ts` (la convention `middleware.ts` est dépréciée depuis
 # Next 16, voir le commentaire de tête de `apps/storefront/src/proxy.ts`).
+#
+# L7 (audit-1.md) : choix explicite — aucune `version` n'est épinglée ci-dessous, ce qui n'est pas un
+# oubli mais une décision assumée de s'appuyer sur la détection/résolution automatique de Netlify
+# (qui installe la version du plugin compatible avec la version de Next.js déclarée dans
+# `package.json`) plutôt que de figer un numéro de version non vérifiable ici (accès à
+# `docs.netlify.com`/au registre npm bloqué dans cet environnement). Si le porteur préfère une
+# version épinglée après vérification, ajouter `version = "x.y.z"` sous `[[plugins]]`.
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+# L7 (audit-1.md) : filet de sécurité pour les fichiers servis directement par le CDN Netlify (assets
+# statiques `_next/static/**`, éventuel fichier statique hors rendu Next) — l'en-tête posé par
+# `next.config.ts` (`headers()`) ne s'applique qu'aux réponses effectivement rendues par la fonction
+# Next.js ; ce bloc `[[headers]]` s'applique, lui, à toute réponse Netlify quelle que soit son
+# origine (fonction ou CDN), en défense en profondeur (P01, D-P01-1 : jamais indexé, sur aucune route
+# ni aucun fichier).
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"

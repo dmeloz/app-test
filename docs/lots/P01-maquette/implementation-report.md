@@ -65,8 +65,11 @@ au produit réel du menu) : `apps/storefront/src/state/cart-calculations.test.ts
 
 ### AC-P01-05 — Aucun supplément présélectionné
 **Statut : satisfait.** `getInitialSelection` renvoie toujours `[]`, y compris pour un groupe
-obligatoire (test dédié `logic.test.ts`). Vérifié aussi visuellement dans le parcours e2e (aucune case
-cochée à l'ouverture d'un produit).
+obligatoire (test dédié `logic.test.ts`). **Correction audit-1 (L4)** : cette section affirmait à
+tort une vérification e2e « aucune case cochée » qui n'existait pas réellement dans le code à ce
+moment (constat de l'audit, exact). Une assertion explicite existe désormais dans
+`demo-storefront-flow.spec.ts` (`not.toBeChecked()` sur chaque choix, obligatoire et facultatif,
+avant tout ajout) — voir « Corrections audit-1 » en fin de document.
 
 ### AC-P01-06 — Allergènes visibles avant ajout
 **Statut : satisfait.** `packages/ui/src/components/ProductCard.test.ts` : les allergènes apparaissent
@@ -145,8 +148,14 @@ Points explicitement marqués « hypothèse — à vérifier par le porteur » d
 principal n'a pas pu consulter `docs.netlify.com`/`netlify.com`, bloqués par le proxy réseau de
 l'environnement) : prise en charge de Next.js 16/`proxy.ts` par le runtime Netlify, conditions de
 l'offre gratuite pour un usage de démonstration commerciale, disponibilité de la protection par mot
-de passe. En-tête `X-Robots-Tag: noindex, nofollow` déjà posé sur toutes les routes des deux apps
-(`next.config.ts`), vérifié par `e2e/tests/security-headers.spec.ts`.
+de passe. En-tête `X-Robots-Tag: noindex, nofollow` posé sur toutes les routes des deux apps
+(`next.config.ts`, en-tête appliqué à `/:path*`) et, en défense en profondeur pour les fichiers
+servis directement par le CDN Netlify, par un bloc `[[headers]] for = "/*"` dans les deux
+`netlify.toml` (L7, audit-1.md). **Correction audit-1 (L4)** : la phrase précédente affirmait à tort
+que `security-headers.spec.ts` vérifiait « toutes les routes » alors que seules `/fr` et `/en` (une
+seule route par app) l'étaient à l'origine. Ce test couvre désormais explicitement les 5 routes
+storefront (`/`, `/menu`, `/panier`, `/paiement`, `/suivi`) en FR et EN, et l'unique route
+backoffice, en FR et EN — voir « Corrections audit-1 ».
 
 ## Écarts par rapport à la spec / hypothèses / décisions à valider
 
@@ -334,9 +343,12 @@ Aucune. Aucun schéma de base de données touché par ce lot (spec P01 §2, excl
 - Aucun secret lu/copié/commité (hooks de garde-fou actifs et renforcés — G4).
 - Aucune donnée personnelle réelle : restaurant, adresse, clients tous fictifs et explicitement
   qualifiés comme tels dans le code et les données (`// provisoire`, adresse « (fictif) »).
-- CSP à nonce du L00 conservée intacte, vérifiée par e2e sur toutes les routes ajoutées
-  (`security-headers.spec.ts`), aucun style/script en ligne non couvert par le nonce (feuille de
-  style unique injectée via `<style nonce>`, jamais d'attribut `style=""`).
+- CSP à nonce du L00 conservée intacte. **Correction audit-1 (L4)** : au moment de la rédaction de
+  cette phrase, `security-headers.spec.ts` ne vérifiait que `/fr` et `/en` (racine), pas « toutes les
+  routes ajoutées » comme affirmé à tort — corrigé depuis pour couvrir explicitement les 5 routes
+  storefront et l'unique route backoffice, en FR et EN (voir « Corrections audit-1 »). Aucun
+  style/script en ligne non couvert par le nonce (feuille de style unique injectée via
+  `<style nonce>`, jamais d'attribut `style=""`).
 - Aucun appel réseau vers un tiers ou une API (AC-P01-08, vérifié par interception réelle).
 
 ## Questions ouvertes pour le porteur
@@ -352,3 +364,188 @@ Aucune. Aucun schéma de base de données touché par ce lot (spec P01 §2, excl
 4. Confirmer que l'écart d'environnement Turborepo documenté ci-dessus est bien spécifique à cette
    session/ce conteneur (à revérifier dans l'environnement CI réel, qui pourrait très bien ne pas être
    affecté — aucune preuve n'existe dans un sens ou l'autre pour la CI GitHub Actions elle-même).
+
+## Corrections audit-1 (`docs/lots/P01-maquette/audit-1.md`, auditor-opus, CHANGES_REQUIRED)
+
+Agent : `developer-sonnet`. Commits (branche `claude/lot-p01-maquette-bpjeoe`, après `9b3d2f7`) :
+`8daf04d` (M1, M4, L5, L6, L9), `59a86b6` (M2, M3, L8, L10 partiel), `aad3f8f` (couverture e2e
+M1/M2/M3/L4/L10 + correctif d'amorçage double du tableau de service découvert par ces tests).
+
+**Hors périmètre de cette boucle (décision du porteur D-P01-2, `decisions-porteur.md`)** : L1
+(garde-fou G4 contournable), L2 (exception « documentation seule » à préciser), L3 (heredoc dans une
+substitution `$(...)`). Ces trois constats portent sur `.claude/**`/la règle 11 et sont sortis vers un
+lot dédié (`G01-garde-fou`, statut PROPOSÉ) ; non corrigés dans cette PR, écarts connus et assumés.
+
+### M1 — Cibles tactiles < 44×44 px
+- **Correctif** : `packages/ui/src/themes/demo/stylesheet.ts` — `.ui-button--sm` n'écrase plus
+  `min-height` (hérite des 44 px de `.ui-button`, qui a aussi `min-width: var(--min-tap-target)`,
+  déjà présent) ; `.ui-option-group__choice` passe de `align-items: center` à `stretch` et son
+  `label` devient lui-même un conteneur flexible avec `min-height: var(--min-tap-target)` (la case
+  input reste centrée via `align-self: center`) ; `.ui-field label` (champs invité, motif de refus)
+  reçoit la même règle.
+- **Preuve** : `packages/ui` : `pnpm test` → 47/47 (dont `OptionGroupField.test.ts` nouveau, L5) ;
+  `pnpm run typecheck` → 0 erreur. E2E : nouveau `e2e/tests/demo-touch-targets.spec.ts` — mesure
+  réelle (`getBoundingClientRect()`) de chaque `button`, `a`, `label[for]` visible sur les 4 écrans
+  en état rempli (options visibles, livraison + créneaux + formulaire invité, paiement, suivi,
+  tableau de service + formulaire de refus) : **6/6 tests verts, 0 échec** (voir « Commandes
+  exécutées (audit-1) » ci-dessous).
+
+### M2 — Frais et minimum absents, écart non documenté
+- **Correctif** : `apps/storefront/src/mock/delivery.ts` (`DELIVERY_FEE_CENTS = 350`,
+  `MINIMUM_ORDER_FOR_DELIVERY_CENTS = 2000`, entiers en centimes) ; `cart-calculations.ts`
+  (`deliveryFeeCents`, `orderTotalCents`, `isBelowDeliveryMinimum`) ; `CartScreen.tsx` affiche les
+  frais (canal livraison uniquement), le message de minimum non atteint, inclut les frais dans le
+  total, et bloque « Payer » sous le minimum ; `PaymentScreen.tsx` utilise `orderTotalCents` (total
+  cohérent, frais inclus).
+- **Preuve** : unitaires `cart-calculations.test.ts` (+13 cas : frais nul au retrait, frais appliqué
+  en livraison même panier vide, minimum jamais atteint au retrait, cas limites minimum−1/minimum
+  exact/minimum+1) → inclus dans les 28/28 storefront. E2E : nouveau
+  `e2e/tests/demo-cart-delivery.spec.ts`, test « livraison : frais affichés, minimum non atteint
+  bloque Payer, atteint le débloque » — vert.
+
+### M3 — État localStorage non validé
+- **Correctif** : `cart-store.tsx` et `service-board-store.tsx` exportent chacun
+  `loadStateFromStorage(storage)` (stockage injecté, testable sans jsdom) qui valide la forme
+  complète de l'état (gardes de type, sans nouvelle dépendance) avant de l'accepter ; sinon état
+  initial **et purge de la clé**. Bouton visible « Réinitialiser la démo » (FR/EN,
+  `ResetDemoButton.tsx`) ajouté dans les deux layouts, hors du bandeau de démonstration.
+  `error.tsx`/`global-error.tsx` ajoutés sur les deux apps (limite de segment et limite racine) pour
+  ne jamais retomber sur l'interface d'erreur par défaut de Next (qui pose un `<style>` sans nonce).
+- **Preuve** : unitaires `cart-store.test.ts` (6 cas) et `service-board-store.test.ts` (6 cas) —
+  JSON invalide, `lines`/`orders` de mauvaise forme, statut de commande inconnu, racine non-objet →
+  état initial ; état valide → accepté sans purge. E2E : nouveau `demo-corrupted-storage.spec.ts` —
+  3 scénarios de stockage corrompu (2 apps) → page rendue, 0 erreur console, clé purgée ; 2 scénarios
+  de bouton de réinitialisation (2 apps, FR+EN) — **6/6 verts**.
+- **Effet de bord découvert par ces tests** (hors périmètre de l'audit, corrigé ici) : l'effet
+  d'amorçage automatique du tableau de service montait deux fois dans cet environnement (production,
+  `next start`, hors StrictMode dev — cause exacte non élucidée, possiblement une double passe de
+  React 19/Next 16 au premier rendu client), et le garde `useRef` se réinitialisait à chaque
+  remontage, amorçant deux commandes fictives au lieu d'une. Reproduit hors tests par une sonde
+  Playwright manuelle (`t=600ms orders=2`). Corrigé en déplaçant le garde au niveau du module
+  (`autoSeeded`, survit à un remontage). C'est la cause probable de l'échec CI signalé sur `59a86b6`
+  (`demo-backoffice-flow.spec.ts` : la carte ciblée par `.first()` n'était plus la bonne après
+  qu'une deuxième commande soit apparue et ait changé l'ordre des `<article>` dans le DOM) ; corrigé
+  par `aad3f8f`, rejoué localement deux fois de suite sans échec (voir ci-dessous).
+
+### M4 — `formatMoney` suppose 2 décimales
+- **Correctif** : `packages/ui/src/format/money.ts` déduit le nombre de décimales via
+  `Intl.NumberFormat(...).resolvedOptions().maximumFractionDigits` au lieu de diviser
+  systématiquement par 100.
+- **Preuve** : `money.test.ts` +2 cas (JPY 0 décimale, BHD 3 décimales), assertions normalisant
+  l'espace entre montant et code (même précaution que le test des séparateurs de milliers, déjà
+  requise par `814edc6`) — vérifiées contre la sortie réelle d'`Intl` dans ce conteneur (Node 22) ;
+  non revérifiées contre Node 24 (CI), risque déjà documenté pour le test des milliers.
+
+### L4 — Couverture e2e partielle et rapport surestimé
+- **Correctif** : `demo-viewport.spec.ts` et `demo-accessibility.spec.ts` couvrent désormais FR et
+  EN et des états remplis (options, livraison, créneaux, formulaire de refus), pas seulement l'état
+  vide en FR ; `security-headers.spec.ts` couvre les 5 routes storefront (au lieu de la racine
+  seule) en FR/EN, plus l'unique route backoffice ; `demo-storefront-flow.spec.ts` vérifie
+  explicitement qu'aucune case n'est cochée à l'ouverture d'un produit (`not.toBeChecked()`, 6
+  assertions). Formulations surestimées du rapport corrigées en place (AC-P01-05, décision D-P01-1,
+  section Sécurité — voir les corrections marquées ci-dessus dans le corps du document).
+- **Preuve** : les 86 tests e2e du fichier de commandes ci-dessous incluent cette couverture élargie.
+
+### L5 — AC-P01-04 : pas de test du composant
+- **Correctif** : `packages/ui/src/components/OptionGroupField.test.ts` (nouveau) —
+  `renderToStaticMarkup` avec 2 choix sélectionnés (max=2) → 3ᵉ choix `disabled` ; 1 choix sélectionné
+  → aucun choix désactivé ; aucune case pré-cochée à vide.
+
+### L6 — Test creux de `DemoBanner`
+- **Correctif** : remplacé par `expectTypeOf<DemoBannerProps>().toEqualTypeOf<{ readonly text:
+  string }>()` (API de type de Vitest, aucune nouvelle dépendance) — un champ `onClose` ajouté par
+  erreur ferait désormais échouer `pnpm typecheck` (le fichier de test est inclus dans le
+  `tsconfig.json` du paquet), pas seulement le test.
+
+### L7 — Netlify : hypothèses incomplètes
+- **Correctif** : les deux `netlify.toml` ajoutent un bloc `[[headers]] for = "/*"` posant
+  `X-Robots-Tag: noindex, nofollow` (filet pour les fichiers servis directement par le CDN, en plus
+  de l'en-tête déjà posé par `next.config.ts` pour les réponses rendues par Next) ; un commentaire
+  précise explicitement que l'absence de `version =` sous `[[plugins]]` est un choix assumé (repose
+  sur la détection/résolution automatique de Netlify), pas un oubli ; hypothèses ajoutées sur la
+  prise en charge de `pnpm@12.6.0` (Corepack) et de Node `>=24.21.0` par l'image de build Netlify
+  (`deploiement-netlify.md`, points 4 et 5).
+
+### L8 — Nom du restaurant fictif
+- **Écart consigné** : la spec §2 cite « Le Petit Lausannois » comme exemple ; le fil principal a
+  choisi « Le Belvédère Imaginaire » après une recherche web (vérification qu'il ne correspond à
+  aucun établissement réel connu) — ce changement de nom n'avait pas été consigné explicitement dans
+  les « Écarts » de ce rapport avant l'audit, seulement dans un commentaire de code
+  (`mock/restaurant.ts`). Consigné ici.
+- **Correctif** : le nom n'est plus dupliqué dans les dictionnaires i18n (`siteTitle`,
+  `home.heading`, `titlePrefix` complet côté backoffice) — chaque app définit sa propre donnée
+  « tenant » (`mock/restaurant.ts`, jamais partagée entre apps, ADR 0001) ; `HomeScreen` affiche
+  `restaurant.name` ; les deux `layout.tsx` composent le titre à partir de cette donnée.
+- **Preuve** : `restaurant.test.ts` (2 apps) ; `dictionary.test.ts` mis à jour (2 apps) ; build et
+  e2e (`pages.spec.ts`, `demo-storefront-flow.spec.ts`) toujours verts avec le nom affiché par le
+  code plutôt que codé en dur dans le test lui-même où c'était déjà le cas.
+
+### L9 — Thème : valeurs non validées, tailles en dur
+- **Correctif** : `packages/ui/src/tokens/to-css.ts` — `tokensToCssVariables` rejette
+  (`DesignTokenError`) toute valeur de token contenant un caractère hors liste blanche (`; { } < >
+  : \` etc., voir le motif `SAFE_TOKEN_VALUE_PATTERN`) avant de l'injecter dans le `<style>` du
+  thème. Tailles auparavant codées en dur (36, 96, 480, 20 px) remplacées par des tokens
+  (`size.checkbox`, `size.productPhotoHeight`, `size.containerMaxWidth`, `size.cartBarClearance`,
+  `types.ts`/`demo-theme.ts`).
+- **Preuve** : nouveau `to-css.test.ts` — accepte le thème réel ; refuse une valeur tentant de fermer
+  `</style>` + `<script>`, une valeur avec accolade/`url(javascript:...)`, une valeur avec retour à
+  la ligne ; accepte des valeurs légitimes (hex, `rgba()`, famille de police entre guillemets).
+
+### L10 — Parcours de démonstration incomplet ou permissif
+- **Correctif** : `updateLineQuantity` (cart-store) + boutons +/- dans `CartScreen.tsx` (lignes
+  modifiables, pas seulement supprimables) ; `PaymentScreen.tsx` affiche un message (pas un montant
+  à 0 CHF) si le panier est vide et qu'aucune commande n'est en cours ; « Payer » exige désormais
+  `asap || slotId` en plus d'un canal et d'un panier non vide ; `confirmPayment` purge les lignes du
+  panier et les coordonnées invitées (nom/téléphone/note) après la confirmation ; `OrderCard` reçoit
+  `highlighted`/`highlightLabel` et `ServiceBoardScreen` les passe pour la dernière commande arrivée
+  (`board.lastArrivalId`) — surbrillance visuelle **et** texte (« Nouvelle arrivée » / « New
+  arrival »), jamais la couleur seule.
+- **Preuve** : `demo-cart-delivery.spec.ts` (+/- de quantité, exigence de créneau, message panier
+  vide sur `/paiement`, purge des coordonnées après paiement) ; `demo-backoffice-flow.spec.ts`
+  vérifie le texte « Nouvelle arrivée ».
+
+## Commandes exécutées (audit-1) — sorties réelles, cette session
+
+```
+$ pnpm format:check
+Checking formatting...
+All matched files use Prettier code style!
+
+$ pnpm lint
+$ eslint .
+(aucune sortie = 0 erreur, 0 avertissement)
+
+$ pnpm test:lint-boundaries
+# tests 18
+# pass 18
+# fail 0
+
+$ (cd packages/ui && pnpm run typecheck)        → 0 erreur
+$ (cd apps/storefront && pnpm run typecheck)     → 0 erreur
+$ (cd apps/backoffice && pnpm run typecheck)     → 0 erreur
+(+ les 7 autres paquets/apps du monorepo, inchangés depuis le rapport initial, revérifiés 0 erreur)
+
+$ (cd packages/ui && pnpm test)       → Test Files 8 passed, Tests 47 passed
+$ (cd apps/storefront && pnpm test)   → Test Files 4 passed, Tests 28 passed
+$ (cd apps/backoffice && pnpm test)   → Test Files 3 passed, Tests 11 passed
+(domain 9, api 33 inchangés — total 128 tests unitaires/intégration réels, 0 échec)
+
+$ (cd packages/ui && pnpm run build)       → tsc -p tsconfig.build.json, 0 erreur
+$ (cd apps/storefront && pnpm run build)    → next build : Compiled successfully, Finished
+  TypeScript (0 erreur), 12 pages générées, routes ƒ (dynamiques)
+$ (cd apps/backoffice && pnpm run build)    → next build : Compiled successfully, Finished
+  TypeScript (0 erreur), 4 pages générées, routes ƒ (dynamiques)
+
+$ CI=1 PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers pnpm exec playwright test \
+    --config e2e/playwright.config.ts
+Running 86 tests using 2 workers
+  ... (86 lignes ✓)
+  86 passed (40.3s)
+# Rejoué une seconde fois (vérification de non-flakiness après le correctif d'amorçage double) :
+  86 passed (41.0s)
+
+$ bash .claude/hooks/test-guards.sh   → 127 « ok », 0 FAIL (inchangé, hors périmètre de cette boucle)
+```
+
+Turborepo : toujours « Exec format error » dans ce conteneur (écart d'environnement déjà documenté
+plus haut, inchangé) ; chaque commande sous-jacente ci-dessus a été rejouée directement, avec succès.

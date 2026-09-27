@@ -32,6 +32,14 @@ connexion réelle du dépôt :
    l'accès (mot de passe ou lien non indexé). Vérifier si la protection par mot de passe Netlify est
    incluse dans l'offre retenue ; à défaut, ne compter que sur les mesures ci-dessous (en-tête
    `X-Robots-Tag`, URL non communiquée publiquement).
+4. **(L7, audit-1.md) Prise en charge de `pnpm@12.6.0` via Corepack.** Le `package.json` racine
+   déclare `"packageManager": "pnpm@12.6.0"` ; Netlify active généralement Corepack à partir de ce
+   champ pour installer la version exacte déclarée, mais cette prise en charge (et celle de Corepack
+   lui-même) par l'image de build Netlify n'a pas pu être confirmée dans la documentation officielle.
+5. **(L7, audit-1.md) Version Node exacte.** Le `package.json` racine déclare `"engines": { "node":
+   ">=24.21.0" }` ; `NODE_VERSION = "24"` dans les `netlify.toml` ne fixe qu'une branche majeure, pas
+   la version mineure/patch minimale exacte — à confirmer que l'image Netlify pour Node 24 satisfait
+   bien `>=24.21.0` au moment du déploiement.
 
 Aucune de ces hypothèses n'a été activée ou présumée vraie dans le code : les `netlify.toml` sont une
 proposition de configuration, pas une confirmation qu'elle fonctionnera telle quelle.
