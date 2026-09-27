@@ -33,6 +33,10 @@ D-P01-3) ; le hook est une défense en profondeur qui doit être cohérente avec
    `.claude/**`, `docs/process/**` et `.github/**` ne relèvent jamais de l'exception « documentation
    seule ».
 6. **S4** : faux positif G4 sur un texte contenant « rulesets » (commentaire d'issue).
+7. **Fichiers d'instructions générés par un outil tiers** (`audit-2.md` I2) : `next dev` (Next 16.3.6)
+   génère `AGENTS.md` et `CLAUDE.md` dans les apps et incite à les commiter ; un `CLAUDE.md` imbriqué
+   serait chargé comme instructions d'agent. Désactiver la génération (`agentRules: false` dans les deux
+   `next.config.ts`) ou ignorer ces fichiers, et interdire leur commit sans revue.
 
 ## 3. Critères d'acceptation
 
