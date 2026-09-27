@@ -154,11 +154,14 @@ if (typeof window !== "undefined") {
   currentState = loadState();
 }
 const listeners = new Set<() => void>();
-// Portée module (pas un `useRef`) : un `useRef` se réinitialise si le composant démonte puis
-// remonte (observé ici — cette version de React/Next commet parfois deux passes de montage même en
-// production, hors StrictMode dev) ; seule une valeur au niveau du module survit à un remontage dans
-// la même session de page et garantit un unique amorçage automatique (spec P01 §2, une seule
-// commande fictive à l'arrivée).
+// Portée module (pas un `useRef`) — cause réelle du doublon corrigé par ce drapeau (N6, audit-2.md,
+// corrige le diagnostic inexact du rapport d'implémentation qui évoquait une double passe de montage
+// React) : `useServiceBoard()` a plusieurs consommateurs indépendants (`ServiceBoardScreen` et,
+// depuis `59a86b6`, `ResetDemoButton` dans le layout) ; un `useRef` est une donnée par instance de
+// hook, donc par consommateur — chacun aurait eu son propre garde et son propre minuteur d'amorçage,
+// d'où deux commandes fictives au lieu d'une (`git show 59a86b6`). Seule une valeur au niveau du
+// module est partagée par tous les consommateurs du hook et garantit un unique amorçage automatique
+// (spec P01 §2, une seule commande fictive à l'arrivée), quel que soit leur nombre.
 let autoSeeded = false;
 
 function emitChange(): void {

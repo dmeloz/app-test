@@ -43,8 +43,19 @@ interface Dictionary {
     readonly heading: string;
     readonly emptyMessage: string;
     readonly removeLine: string;
+    // N1 (audit-2.md) : gabarits de texte (jeton `{product}`, substitué côté client par
+    // `CartScreen`) — jamais de fonction dans le dictionnaire : `getDictionary` est appelé dans un
+    // composant serveur (`app/[locale]/panier/page.tsx`) et une fonction ne peut pas traverser la
+    // frontière RSC → composant client (« Functions cannot be passed directly to Client
+    // Components »), constaté en exécution réelle (`next start`) lors de la correction de ce constat.
+    /** Libellé accessible contextualisé — « Retirer {product} du panier ». */
+    readonly removeLineLabel: string;
+    /** Libellé accessible contextualisé — « Diminuer la quantité de {product} ». */
     readonly decreaseQuantity: string;
+    /** Libellé accessible contextualisé — « Augmenter la quantité de {product} ». */
     readonly increaseQuantity: string;
+    /** Texte visuellement masqué associé à la valeur numérique de la quantité. */
+    readonly quantityLabel: string;
     readonly totalLabel: string;
     readonly deliveryFeeLabel: string;
     readonly minimumOrderPrefix: string;
@@ -68,6 +79,9 @@ interface Dictionary {
     readonly confirmButton: string;
     readonly emptyCartWarning: string;
     readonly backToMenu: string;
+    /** N2 (audit-2.md) : accès direct à `/paiement` sans minimum de livraison atteint ni créneau. */
+    readonly notPayableWarning: string;
+    readonly backToCart: string;
   };
   readonly tracking: {
     readonly heading: string;
@@ -116,8 +130,10 @@ const DICTIONARIES: Record<Locale, Dictionary> = {
       heading: "Panier et créneau",
       emptyMessage: "Votre panier de démonstration est vide.",
       removeLine: "Retirer",
-      decreaseQuantity: "Diminuer la quantité",
-      increaseQuantity: "Augmenter la quantité",
+      removeLineLabel: "Retirer {product} du panier",
+      decreaseQuantity: "Diminuer la quantité de {product}",
+      increaseQuantity: "Augmenter la quantité de {product}",
+      quantityLabel: "Quantité de {product} :",
       totalLabel: "Total",
       deliveryFeeLabel: "Frais de livraison",
       minimumOrderPrefix: "Minimum de commande pour la livraison :",
@@ -142,6 +158,9 @@ const DICTIONARIES: Record<Locale, Dictionary> = {
       confirmButton: "Confirmer le paiement (démonstration)",
       emptyCartWarning: "Votre panier de démonstration est vide : rien à payer.",
       backToMenu: "Retour au menu",
+      notPayableWarning:
+        "Ce paiement n'est plus disponible : retournez au panier pour vérifier le minimum de livraison ou le créneau choisi.",
+      backToCart: "Retour au panier",
     },
     tracking: {
       heading: "Suivi de commande",
@@ -188,8 +207,10 @@ const DICTIONARIES: Record<Locale, Dictionary> = {
       heading: "Cart and time slot",
       emptyMessage: "Your demo cart is empty.",
       removeLine: "Remove",
-      decreaseQuantity: "Decrease quantity",
-      increaseQuantity: "Increase quantity",
+      removeLineLabel: "Remove {product} from cart",
+      decreaseQuantity: "Decrease quantity of {product}",
+      increaseQuantity: "Increase quantity of {product}",
+      quantityLabel: "Quantity of {product}:",
       totalLabel: "Total",
       deliveryFeeLabel: "Delivery fee",
       minimumOrderPrefix: "Delivery minimum order:",
@@ -213,6 +234,9 @@ const DICTIONARIES: Record<Locale, Dictionary> = {
       confirmButton: "Confirm payment (demo)",
       emptyCartWarning: "Your demo cart is empty: nothing to pay.",
       backToMenu: "Back to menu",
+      notPayableWarning:
+        "This payment is no longer available: go back to the cart to check the delivery minimum or your chosen time slot.",
+      backToCart: "Back to cart",
     },
     tracking: {
       heading: "Order tracking",

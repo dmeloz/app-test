@@ -50,9 +50,12 @@
 # L7 (audit-1.md) : filet de sécurité pour les fichiers servis directement par le CDN Netlify (assets
 # statiques `_next/static/**`, éventuel fichier statique hors rendu Next) — l'en-tête posé par
 # `next.config.ts` (`headers()`) ne s'applique qu'aux réponses effectivement rendues par la fonction
-# Next.js ; ce bloc `[[headers]]` s'applique, lui, à toute réponse Netlify quelle que soit son
-# origine (fonction ou CDN), en défense en profondeur (P01, D-P01-1 : jamais indexé, sur aucune route
-# ni aucun fichier).
+# Next.js. HYPOTHÈSE (N6, audit-2.md), non vérifiée dans cet environnement (accès à
+# docs.netlify.com bloqué) : ce bloc `[[headers]]` s'appliquerait, lui, à toute réponse Netlify quelle
+# que soit son origine (fonction ou CDN) — à confirmer par le porteur (voir
+# `docs/lots/P01-maquette/deploiement-netlify.md`, vérification `curl -I` après le premier
+# déploiement) ; en défense en profondeur en attendant (P01, D-P01-1 : jamais indexé, sur aucune
+# route ni aucun fichier).
 [[headers]]
   for = "/*"
   [headers.values]

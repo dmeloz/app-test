@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { loadStateFromStorage, STORAGE_KEY } from "./cart-store";
+import { loadStateFromStorage, sanitizeReferentialIntegrity, STORAGE_KEY } from "./cart-store";
 
 // M3 (audit-1.md) : un état `localStorage` de mauvaise forme ne doit jamais faire planter le rendu
 // (« t.reduce is not a function » constaté par l'audit) — `loadStateFromStorage` reçoit un
@@ -82,5 +82,48 @@ describe("loadStateFromStorage — M3 (audit-1.md)", () => {
     const storage = fakeStorage({ [STORAGE_KEY]: JSON.stringify(validState) });
     expect(loadStateFromStorage(storage)).toEqual(validState);
     expect(storage.data.has(STORAGE_KEY)).toBe(true);
+  });
+});
+
+// N3 (audit-2.md) : un état de forme valide (M3) mais dont les identifiants ne correspondent plus à
+// rien de réel (mock modifié entre deux déploiements, clé de stockage `-v1` inchangée) ne doit pas
+// laisser le panier dans un état incohérent (total à 0 CHF, « Payer » activé sans produit réel).
+describe("sanitizeReferentialIntegrity / loadStateFromStorage — N3 (audit-2.md)", () => {
+  it("filtre une ligne dont le produit n'existe pas dans le menu fictif", () => {
+    const state = {
+      ...INITIAL_STATE,
+      lines: [{ lineId: "l1", productId: "n-existe-pas", quantity: 1, selections: [] }],
+    };
+    expect(sanitizeReferentialIntegrity(state)).toEqual({ ...INITIAL_STATE, lines: [] });
+  });
+
+  it("ignore un créneau qui n'existe pas (traité comme aucun créneau choisi)", () => {
+    const state = { ...INITIAL_STATE, slotId: "slot-zzz" };
+    expect(sanitizeReferentialIntegrity(state)).toEqual({ ...INITIAL_STATE, slotId: null });
+  });
+
+  it("conserve une ligne et un créneau qui existent réellement", () => {
+    const state = {
+      ...INITIAL_STATE,
+      lines: [{ lineId: "l1", productId: "entrecote", quantity: 1, selections: [] }],
+      slotId: "slot-1",
+    };
+    expect(sanitizeReferentialIntegrity(state)).toEqual(state);
+  });
+
+  it("purge, au chargement, la ligne et le créneau inconnus d'un état localStorage par ailleurs valide", () => {
+    const corrupted = {
+      ...INITIAL_STATE,
+      lines: [{ lineId: "l1", productId: "n-existe-pas", quantity: 1, selections: [] }],
+      slotId: "slot-zzz",
+      asap: false,
+    };
+    const storage = fakeStorage({ [STORAGE_KEY]: JSON.stringify(corrupted) });
+    expect(loadStateFromStorage(storage)).toEqual({
+      ...INITIAL_STATE,
+      lines: [],
+      slotId: null,
+      asap: false,
+    });
   });
 });

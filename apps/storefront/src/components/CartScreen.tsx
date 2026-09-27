@@ -21,8 +21,10 @@ interface CartDictionary {
   readonly heading: string;
   readonly emptyMessage: string;
   readonly removeLine: string;
+  readonly removeLineLabel: string;
   readonly decreaseQuantity: string;
   readonly increaseQuantity: string;
+  readonly quantityLabel: string;
   readonly totalLabel: string;
   readonly deliveryFeeLabel: string;
   readonly minimumOrderPrefix: string;
@@ -45,6 +47,12 @@ export interface CartScreenProps {
   readonly dictionary: CartDictionary;
   readonly menu: readonly MockCategory[];
   readonly slots: readonly MockSlot[];
+}
+
+// N1 (audit-2.md) : substitue le jeton `{product}` d'un gabarit du dictionnaire — voir le commentaire
+// de `CartDictionary` (`i18n/dictionary.ts`) sur la raison de ce choix (frontière RSC → client).
+function withProductName(template: string, productName: string): string {
+  return template.replace("{product}", productName);
 }
 
 // Écran 3 (spec P01 §2) : lignes modifiables, frais et minimum affichés (aucun ici — maquette),
@@ -113,37 +121,49 @@ export function CartScreen({ locale, dictionary, menu, slots }: CartScreenProps)
                   });
                 })
                 .filter((value): value is string => Boolean(value));
+              const productName = localize(product.name, locale);
               return (
                 <li key={line.lineId} className="ui-card">
                   <div className="ui-product-card__header">
-                    <span>{localize(product.name, locale)}</span>
+                    <span>{productName}</span>
                     <span>{formatChf(lineTotalCents(product, line), locale)}</span>
                   </div>
                   {optionLabels.length > 0 ? (
                     <p className="ui-text-muted">{optionLabels.join(", ")}</p>
                   ) : null}
                   {/* L10 (audit-1.md) : lignes modifiables — +/- de quantité, pas seulement retrait. */}
+                  {/* N1 (audit-2.md) : boutons contextualisés (nom du produit) et quantité exposée
+                      aux technologies d'assistance (`aria-hidden` retiré, texte visuellement masqué
+                      + `aria-live="polite"` sur la valeur, plutôt qu'une information visible seule). */}
                   <div className="ui-quantity-control">
                     <Button
                       variant="ghost"
                       size="sm"
-                      aria-label={dictionary.decreaseQuantity}
+                      aria-label={withProductName(dictionary.decreaseQuantity, productName)}
                       onClick={() => updateLineQuantity(line.lineId, line.quantity - 1)}
                     >
                       −
                     </Button>
-                    <span className="ui-quantity-control__value" aria-hidden="true">
+                    <span className="ui-quantity-control__value" aria-live="polite">
+                      <span className="ui-visually-hidden">
+                        {withProductName(dictionary.quantityLabel, productName)}
+                      </span>{" "}
                       {line.quantity}
                     </span>
                     <Button
                       variant="ghost"
                       size="sm"
-                      aria-label={dictionary.increaseQuantity}
+                      aria-label={withProductName(dictionary.increaseQuantity, productName)}
                       onClick={() => updateLineQuantity(line.lineId, line.quantity + 1)}
                     >
                       +
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => removeLine(line.lineId)}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label={withProductName(dictionary.removeLineLabel, productName)}
+                      onClick={() => removeLine(line.lineId)}
+                    >
                       {dictionary.removeLine}
                     </Button>
                   </div>

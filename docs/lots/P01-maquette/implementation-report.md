@@ -30,7 +30,8 @@ bandeau « Démonstration » permanent, accessibilité AA — voir `docs/lots/P0
 **Suivi audit-7 (L00)** : constats LOW/INFO reportés à cette PR (`docs/lots/L00-socle/audit-7.md`) —
 G1 (checks nommés + PR non brouillon dans la doc de process), G2 (portée de « audit APPROVED »), G3
 (approbations humaines avant fusion), G4 (interdiction de contourner les checks, dans la règle **et**
-dans le hook), N17 (faux marqueurs de heredoc de la règle `.env`), INFO M15 (`threat-model.md`).
+dans le hook — appliqué partiellement, voir D-P01-2 / lot G01), N17 (faux marqueurs de heredoc de la
+règle `.env`), INFO M15 (`threat-model.md`).
 
 **Hors périmètre, non touché** : `apps/api`, `packages/db`, `packages/contracts`, `packages/domain`
 (hormis lecture), tout ce qui concerne paiement réel, authentification, base de données.
@@ -119,7 +120,7 @@ test dans `tools/eslint-boundaries.test.mjs` — la règle générique `import-x
 | G1 | `CLAUDE.md` (règle 11), `workflow-lots.md`, `definition-of-done.md` citent désormais explicitement « PR non brouillon » et les checks nommés `ci`/`docker-api`. | Lecture des trois fichiers, commit `80954d6`. |
 | G2 | « Audit indépendant `APPROVED` » précisé (règle 11, `workflow-lots.md`, DoD) : tous les audits requis par le lot (`security-opus` en plus d'`auditor-opus` pour un lot critique), portant sur le SHA effectivement fusionné ; tout commit postérieur doit être audité ou strictement limité à la documentation. | Idem. |
 | G3 | Règle 11 + `workflow-lots.md` exigent désormais explicitement que les approbations humaines obligatoires du lot soient obtenues **avant** la fusion, pas après. | Idem. |
-| G4 | `.claude/hooks/guard-bash.sh` bloque désormais `gh pr merge --admin` (et variantes avec d'autres options), `gh api` en méthode non GET (`-X`/`--method` PUT/PATCH/POST/DELETE) sur un ruleset ou une protection de branche, et les sous-commandes d'écriture de `gh ruleset` (create/edit/update/delete/import). Règle 11 du `CLAUDE.md` l'interdit aussi explicitement dans le texte. | 20 nouveaux cas dans `test-guards.sh` (voir ci-dessous), tous verts. |
+| G4 | `.claude/hooks/guard-bash.sh` bloque désormais `gh pr merge --admin` (et variantes avec d'autres options), `gh api` en méthode non GET (`-X`/`--method` PUT/PATCH/POST/DELETE) sur un ruleset ou une protection de branche, et les sous-commandes d'écriture de `gh ruleset` (create/edit/update/delete/import). Règle 11 du `CLAUDE.md` l'interdit aussi explicitement dans le texte. **Appliqué partiellement — voir D-P01-2 / lot G01** (limites résiduelles d'un hook Bash sans exécution réelle de la commande, documentées ci-dessous). | 20 nouveaux cas dans `test-guards.sh` (voir ci-dessous), tous verts. |
 | N17 | Le mode « stripped » de `extract()` (règle `.env` uniquement) comparait la ligne de terminaison d'un heredoc après un simple `.strip()`, y compris pour un `<<` sans tiret — **vérifié dans cet environnement réel** (`bash`) qu'un terminateur indenté ou suivi d'espaces ne termine PAS un heredoc sans tiret ; seul `<<-` tolère des tabulations de tête. Corrigé par une comparaison stricte (`line == term`, ou `line.lstrip("\t") == term` uniquement pour `<<-`). Réduit les faux marqueurs de fin qui faisaient fuiter du contenu de heredoc (potentiellement une mention de `.env`) hors de la zone retirée, causant des blocages à tort sur des commandes légitimes (rédiger un document mentionnant `.env`). | 5 nouveaux cas ciblés dans `test-guards.sh`, tous verts ; vérification manuelle directe contre un vrai `bash` (voir ci-dessous). |
 | LOW/INFO (limites résiduelles) | **Non corrigées, documentées telles quelles** (comme demandé) : redirection depuis l'entrée standard (ex. `. /dev/stdin`), variable d'environnement désignant un interpréteur (ex. `$SHELL`), script écrit puis exécuté en deux commandes séparées. Limites inhérentes à un hook Bash sans exécution réelle de la commande. | Commentaire dans `guard-bash.sh` (inchangé sur ce point, déjà documenté à l'audit-7) ; non revendiqué comme corrigé ici. |
 | INFO M15 | `docs/security/threat-model.md`, ligne M15 : « revue humaine » remplacée par la description réelle de la gouvernance (audit Opus indépendant obligatoire, checks `ci`/`docker-api`, fusion réservée au fil principal sous conditions strictes incluant l'interdiction de contourner les checks, déploiement de production toujours soumis à une autorisation humaine explicite). | Lecture du fichier, commit `80954d6`. |
@@ -340,7 +341,8 @@ Aucune. Aucun schéma de base de données touché par ce lot (spec P01 §2, excl
 
 ## Sécurité (`.claude/rules/security.md`)
 
-- Aucun secret lu/copié/commité (hooks de garde-fou actifs et renforcés — G4).
+- Aucun secret lu/copié/commité (hooks de garde-fou actifs et renforcés — G4, appliqué partiellement,
+  voir D-P01-2 / lot G01).
 - Aucune donnée personnelle réelle : restaurant, adresse, clients tous fictifs et explicitement
   qualifiés comme tels dans le code et les données (`// provisoire`, adresse « (fictif) »).
 - CSP à nonce du L00 conservée intacte. **Correction audit-1 (L4)** : au moment de la rédaction de
@@ -417,15 +419,20 @@ lot dédié (`G01-garde-fou`, statut PROPOSÉ) ; non corrigés dans cette PR, é
   3 scénarios de stockage corrompu (2 apps) → page rendue, 0 erreur console, clé purgée ; 2 scénarios
   de bouton de réinitialisation (2 apps, FR+EN) — **6/6 verts**.
 - **Effet de bord découvert par ces tests** (hors périmètre de l'audit, corrigé ici) : l'effet
-  d'amorçage automatique du tableau de service montait deux fois dans cet environnement (production,
-  `next start`, hors StrictMode dev — cause exacte non élucidée, possiblement une double passe de
-  React 19/Next 16 au premier rendu client), et le garde `useRef` se réinitialisait à chaque
-  remontage, amorçant deux commandes fictives au lieu d'une. Reproduit hors tests par une sonde
+  d'amorçage automatique du tableau de service créait deux commandes fictives au lieu d'une.
+  **Correction (N6, audit-2.md) : le diagnostic ci-dessous, écrit au moment du correctif, était
+  inexact** — la cause n'était pas une double passe de montage React/Next en production, mais un
+  fait déterministe constaté dans l'historique Git (`git show 59a86b6`) : ce commit ajoute un second
+  consommateur indépendant de `useServiceBoard()` (`ResetDemoButton`, dans le layout) en plus de
+  `ServiceBoardScreen` ; le garde d'amorçage était alors un `useRef`, une donnée par instance de
+  hook et donc par consommateur — chacun avait son propre garde et son propre minuteur d'amorçage,
+  sans rapport avec le nombre de passes de montage de React. Reproduit hors tests par une sonde
   Playwright manuelle (`t=600ms orders=2`). Corrigé en déplaçant le garde au niveau du module
-  (`autoSeeded`, survit à un remontage). C'est la cause probable de l'échec CI signalé sur `59a86b6`
-  (`demo-backoffice-flow.spec.ts` : la carte ciblée par `.first()` n'était plus la bonne après
-  qu'une deuxième commande soit apparue et ait changé l'ordre des `<article>` dans le DOM) ; corrigé
-  par `aad3f8f`, rejoué localement deux fois de suite sans échec (voir ci-dessous).
+  (`autoSeeded`, partagé par tous les consommateurs du hook, quel que soit leur nombre). C'est la
+  cause probable de l'échec CI signalé sur `59a86b6` (`demo-backoffice-flow.spec.ts` : la carte
+  ciblée par `.first()` n'était plus la bonne après qu'une deuxième commande soit apparue et ait
+  changé l'ordre des `<article>` dans le DOM) ; corrigé par `aad3f8f`, rejoué localement deux fois de
+  suite sans échec (voir ci-dessous).
 
 ### M4 — `formatMoney` suppose 2 décimales
 - **Correctif** : `packages/ui/src/format/money.ts` déduit le nombre de décimales via
@@ -549,3 +556,189 @@ $ bash .claude/hooks/test-guards.sh   → 127 « ok », 0 FAIL (inchangé, hors 
 
 Turborepo : toujours « Exec format error » dans ce conteneur (écart d'environnement déjà documenté
 plus haut, inchangé) ; chaque commande sous-jacente ci-dessus a été rejouée directement, avec succès.
+
+## Corrections audit-2
+
+Boucle limitée aux constats N1–N6 de `docs/lots/P01-maquette/audit-2.md` (N5, I1, I2 hors périmètre —
+respectivement lot L05 et lot G01). Branche `claude/lot-p01-maquette-bpjeoe`, base `294feaf`.
+
+### N1 [MEDIUM] — Quantité du panier non exposée aux technologies d'assistance
+
+- **Correctif** : `apps/storefront/src/components/CartScreen.tsx` — `aria-hidden="true"` retiré de la
+  valeur numérique de quantité (`.ui-quantity-control__value`), `aria-live="polite"` ajouté sur cet
+  élément, et un texte visuellement masqué (`.ui-visually-hidden`) associé (« Quantité de {produit} : »).
+  Boutons +/− et « Retirer » désormais contextualisés par le nom du produit (`aria-label`), FR/EN, via
+  de nouvelles clés du dictionnaire (`apps/storefront/src/i18n/dictionary.ts` : `decreaseQuantity`,
+  `increaseQuantity`, `removeLineLabel`, `quantityLabel`).
+- **Écart technique découvert en cours de correction, corrigé** : ces clés avaient d'abord été
+  écrites comme des fonctions `(productName: string) => string` (plus proches de « aucun texte en
+  dur »), mais `apps/storefront/src/app/[locale]/panier/page.tsx` est un composant serveur qui passe
+  `dictionary.cart` à `CartScreen` (composant client) — une fonction ne peut pas traverser cette
+  frontière RSC (« Functions cannot be passed directly to Client Components »), constaté en exécution
+  réelle (`next start` local, `/fr/panier` → 500). Corrigé par des gabarits de texte (jeton `{product}`)
+  substitués côté client (`withProductName`, `CartScreen.tsx`) — voir le commentaire du dictionnaire.
+- **Preuve** : `pnpm --filter storefront run build` puis `next start` local, `curl -I /fr/panier` → 200
+  (repris ci-dessous) ; e2e `demo-cart-delivery.spec.ts` — nouveau test « quantité exposée aux
+  technologies d'assistance après +/- (N1, audit-2.md) » : `getByRole("button", { name: "Augmenter la
+  quantité de Salade de saison" })` visible, cliqué, puis `locator(".ui-quantity-control").ariaSnapshot()`
+  contient bien « 2 » (pas seulement le DOM visuel) — vert. Les 89 autres tests e2e restent verts (voir
+  sortie complète ci-dessous), dont les 12 écrans vides + 6 états remplis `demo-accessibility.spec.ts`
+  (axe, 0 serious/critical).
+
+### N2 [LOW] — `/paiement` restait payable après une commande (retour arrière) ; minimum/créneau non réappliqués ; commentaire inexact
+
+- **Correctif** : `apps/storefront/src/components/PaymentScreen.tsx` réécrit — garde sur panier vide
+  généralisée à `lines.length === 0` (plus de `&& !order`, qui laissait passer le retour arrière après
+  une commande) ; nouvelle garde `canConfirm` (mêmes conditions que `canPay` de `CartScreen` : canal,
+  panier non vide, minimum de livraison atteint, créneau ou « dès que possible ») qui bloque aussi
+  l'accès direct par l'URL sans passer par « Payer » (nouvel écran, clés `notPayableWarning`/
+  `backToCart` du dictionnaire, lien vers `/panier`) ; drapeau local `isConfirming` (React `useState`,
+  pas un état partagé) pour éviter le flash « panier vide » entre `confirmPayment()` (qui vide `lines`
+  immédiatement) et la navigation vers `/suivi`, et pour désactiver le bouton pendant la transition
+  (`disabled={isConfirming}`). Commentaire inexact de `cart-store.tsx:270-273` (`confirmPayment`)
+  corrigé : vider `lines` n'empêchait pas, à lui seul, une seconde commande au retour arrière — c'est
+  désormais `PaymentScreen` qui en est responsable.
+- **Preuve** : e2e `demo-cart-delivery.spec.ts`, deux nouveaux tests — « paiement puis retour arrière :
+  plus de bouton Confirmer, message panier vide » (reproduit exactement le scénario de preuve de
+  l'audit : commande, `page.goBack()`, `/fr/paiement` affiche le message panier vide, 0 bouton
+  Confirmer) et « livraison sous le minimum : accès direct à /paiement n'affiche aucun bouton
+  Confirmer » (sous-total 9.00 CHF < minimum 20.00 CHF, accès direct par l'URL sans jamais passer par
+  « Payer ») — vertes. Le test existant « /paiement avec un panier vide affiche un message » reste
+  vert (accès direct avant toute commande, cas déjà couvert).
+
+### N3 [LOW] — Validation M3 sans intégrité référentielle
+
+- **Correctif** : `apps/storefront/src/state/cart-store.tsx` — nouvelle fonction exportée
+  `sanitizeReferentialIntegrity`, appliquée dans `loadStateFromStorage` après validation de forme
+  (M3) : filtre les lignes dont `productId` n'existe plus dans le menu fictif (`mock/menu.ts`) et
+  ramène à `null` un `slotId` qui n'existe plus dans les créneaux fictifs (`mock/slots.ts`) —
+  intégrité référentielle distincte de la validation de forme déjà en place, sans purger tout l'état
+  pour autant.
+- **Preuve** : unitaires `cart-store.test.ts` (4 nouveaux cas : ligne à produit inconnu filtrée,
+  créneau inconnu ignoré, ligne/créneau connus conservés, purge combinée au chargement d'un état
+  `localStorage` par ailleurs valide) — 32/32 verts (28 précédents + 4). E2E
+  `demo-corrupted-storage.spec.ts`, nouveau test « produit et créneau inconnus → panier traité comme
+  vide, Payer désactivé » (reprend l'état exact de la preuve de l'audit) — vert.
+
+### N4 [LOW] — Commentaire de `packages/ui/src/format/money.ts`
+
+- **Correctif** : commentaire seul, aucun changement de comportement. Retire l'affirmation « norme
+  ISO 4217 » : `Intl.NumberFormat(...).resolvedOptions().maximumFractionDigits` reflète le CLDR
+  embarqué (dépendant de la version d'ICU), pas nécessairement l'ISO 4217 ni la convention du PSP ;
+  exemples cités (HUF, IDR, COP, IQD, ALL, LAK, MMK) et renvoi explicite vers une table de décimales
+  au plus tard au lot L04 (N4 déjà planifié dans le suivi des constats, ici juste le commentaire).
+- **Preuve** : `pnpm --filter @app/ui run test` — 47/47 verts, comportement inchangé (aucune assertion
+  modifiée).
+
+### N6 [LOW] — Exactitude documentaire
+
+- **`apps/backoffice/src/state/service-board-store.tsx:157-165`** : commentaire réécrit — la cause
+  réelle du doublon n'était pas « deux passes de montage React en production » mais un fait
+  déterministe (`git show 59a86b6`) : ce commit ajoute un second consommateur indépendant de
+  `useServiceBoard()` (`ResetDemoButton`, dans le layout) en plus de `ServiceBoardScreen` ; avec un
+  `useRef` (donnée par instance de hook, donc par consommateur), chacun avait son propre garde et son
+  propre minuteur d'amorçage. Le correctif (drapeau au niveau du module, `autoSeeded`) reste correct ;
+  seul le diagnostic était erroné.
+- **`implementation-report.md:419-428`** (paragraphe « Effet de bord découvert par ces tests ») :
+  même correction appliquée au rapport lui-même (voir ci-dessus dans ce document).
+- **`implementation-report.md:32, :122, :343`** : les trois passages G4 nuancés par « appliqué
+  partiellement — voir D-P01-2 / lot G01 » (limites résiduelles d'un hook Bash sans exécution réelle
+  de la commande, déjà documentées mais pas rattachées à ces trois occurrences).
+- **`apps/storefront/netlify.toml:53` et `apps/backoffice/netlify.toml`** : l'affirmation « ce bloc
+  `[[headers]]` s'applique à toute réponse Netlify quelle que soit son origine » requalifiée en
+  HYPOTHÈSE non vérifiée (accès à `docs.netlify.com` bloqué dans cet environnement), avec renvoi vers
+  la vérification `curl -I` ajoutée à `deploiement-netlify.md`.
+- **`docs/lots/P01-maquette/deploiement-netlify.md`** : point 6 ajouté (portée `[[headers]]`, HYPOTHÈSE)
+  et point 7 = I3 (deploy previews/branch deploys publics et barre d'outils Netlify, script tiers
+  potentiellement bloqué par la CSP à nonce) ; étape 5 de la procédure complétée par la vérification
+  `curl -I` d'une page rendue et d'un asset statique après le premier déploiement (`x-robots-tag`
+  attendu sur les deux réponses).
+- **Preuve** : relecture des quatre fichiers modifiés ; aucun changement de comportement (uniquement
+  des commentaires et de la documentation) — `pnpm format:check`, `pnpm lint`,
+  `pnpm test:lint-boundaries` et les typecheck/test/build des paquets concernés (`@app/ui`,
+  `backoffice`) restent verts (voir sorties ci-dessous).
+
+### Commandes exécutées pour cette boucle (sorties réelles)
+
+```
+$ pnpm format:check
+All matched files use Prettier code style!
+
+$ pnpm lint
+$ pnpm test:lint-boundaries
+# tests 18 / # pass 18 / # fail 0
+
+$ pnpm --filter @app/ui run build && pnpm --filter @app/ui run typecheck && pnpm --filter @app/ui run test
+Test Files  8 passed (8)
+     Tests  47 passed (47)
+
+$ pnpm --filter storefront run typecheck
+$ pnpm --filter storefront run test
+Test Files  4 passed (4)
+     Tests  32 passed (32)
+
+$ pnpm --filter storefront run build
+✓ Compiled successfully ; Finished TypeScript (0 erreur) ; 12 pages générées, routes ƒ
+
+$ pnpm --filter backoffice run typecheck
+$ pnpm --filter backoffice run test
+Test Files  3 passed (3)
+     Tests  11 passed (11)
+
+$ pnpm --filter backoffice run build
+✓ Compiled successfully ; Finished TypeScript (0 erreur) ; 4 pages générées, routes ƒ
+
+# @app/config, @app/contracts, @app/db, @app/domain, @app/i18n, @app/testing, api : build/typecheck/
+# test rejoués individuellement, inchangés (domain 9, api 33, 5 paquets sans test — comme au L00) —
+# 0 échec.
+
+# Vérification manuelle ciblée de la correction N1 (RSC → composant client) :
+$ pnpm --filter storefront run build && (cd apps/storefront && next start --port 3100 &) \
+    && curl -I http://127.0.0.1:3100/fr/panier
+HTTP/1.1 200 OK   # 500 avant correction (« Functions cannot be passed directly to Client Components »)
+
+$ CI=1 PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers pnpm exec playwright test --config e2e/playwright.config.ts
+Running 90 tests using 2 workers
+  ... (90 lignes ✓, dont les 4 nouveaux tests N1/N2×2/N3)
+  90 passed (43.1s)
+```
+
+**Non exécuté dans cette boucle** (sans rapport avec les fichiers modifiés, hors périmètre) :
+`bash .claude/hooks/test-guards.sh`, `apps/api` (aucun fichier touché), orchestration `turbo` (déjà
+« Exec format error » dans ce conteneur, environnemental, inchangé).
+
+### Diff — fichiers modifiés (`git diff --stat`)
+
+```
+apps/backoffice/netlify.toml                      |  5 +-
+apps/backoffice/src/state/service-board-store.tsx | 13 ++--
+apps/storefront/netlify.toml                      |  9 ++-
+apps/storefront/src/components/CartScreen.tsx     | 30 ++++++++--
+apps/storefront/src/components/PaymentScreen.tsx  | 53 ++++++++++++++---
+apps/storefront/src/i18n/dictionary.ts            | 32 ++++++++--
+apps/storefront/src/state/cart-store.test.ts      | 45 +++++++++++++-
+apps/storefront/src/state/cart-store.tsx          | 38 ++++++++++--
+docs/lots/P01-maquette/deploiement-netlify.md     | 26 +++++++-
+docs/lots/P01-maquette/implementation-report.md   | (cette section)
+e2e/tests/demo-cart-delivery.spec.ts               | 72 ++++++++++++++++++++++
+e2e/tests/demo-corrupted-storage.spec.ts           | 28 +++++++++
+packages/ui/src/format/money.ts                   | 11 +++-
+```
+
+Aucune dépendance de production ajoutée. Aucune migration (aucun schéma de base touché par ce lot).
+Aucun fichier sous `.claude/`, `CLAUDE.md`, `docs/process/`, `.github/` modifié (`git diff --quiet --
+.claude CLAUDE.md docs/process .github` → 0) ; `audit-1.md`/`audit-2.md` non modifiés.
+
+### Écarts et points ouverts
+
+- N5 (validation par type des tokens de thème) et I1/I2 confirmés hors périmètre de cette boucle
+  (respectivement lot L05 et lot G01), conformément à la tâche reçue — non traités ici.
+- Le nouvel écran « paiement non disponible » (`notPayableWarning`/`backToCart`) est une décision
+  d'implémentation pour couvrir l'accès direct par l'URL sans passer par « Payer » ; l'audit proposait
+  aussi l'alternative « rediriger vers le panier » — un écran dédié a été préféré pour éviter tout
+  effet de bord de navigation pendant le rendu (React ne permet pas de naviguer pendant le rendu d'un
+  composant sans un `useEffect`, qui aurait réintroduit un flash). Point à valider par le porteur si
+  un comportement différent est préféré.
+- La substitution `{product}` (gabarit de texte, pas une fonction) dans le dictionnaire est un choix
+  technique imposé par la frontière composant serveur → composant client de Next.js App Router ; à
+  garder à l'esprit pour tout futur ajout de texte contextualisé par une donnée dans ce dictionnaire.

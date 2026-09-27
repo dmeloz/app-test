@@ -1,9 +1,19 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
+import { menu } from "../mock/menu";
+import { slots } from "../mock/slots";
 import type { CartLine, CartLineSelection, Channel, GuestInfo, OrderStatus } from "../mock/types";
 
 export const STORAGE_KEY = "demo-storefront-state-v1";
+
+// N3 (audit-2.md) : ensembles des identifiants réellement présents dans le menu et les créneaux
+// fictifs — utilisés pour l'intégrité référentielle ci-dessous (`sanitizeReferentialIntegrity`),
+// jamais pour valider la *forme* des données (`isValidState` ci-dessus reste seul responsable de ça).
+const KNOWN_PRODUCT_IDS = new Set(
+  menu.flatMap((category) => category.products.map((product) => product.id)),
+);
+const KNOWN_SLOT_IDS = new Set(slots.map((slot) => slot.id));
 
 export interface DemoOrder {
   readonly id: string;
@@ -111,6 +121,24 @@ function isValidState(value: unknown): value is StoreState {
   );
 }
 
+/**
+ * N3 (audit-2.md) : une ligne dont `productId` ne correspond plus à aucun produit du menu fictif
+ * (mock modifié entre deux déploiements, clé de stockage `-v1` inchangée), ou un `slotId` qui ne
+ * correspond plus à aucun créneau, ne doivent pas laisser le panier dans un état incohérent (total à
+ * 0 CHF, « Payer » activé malgré un panier sans produit réel) : la ligne est filtrée, le créneau
+ * inconnu est ignoré (traité comme si aucun créneau n'était choisi), sans purger tout l'état pour
+ * autant — contrairement à une donnée de mauvaise *forme* (M3, `isValidState` ci-dessus).
+ */
+export function sanitizeReferentialIntegrity(state: StoreState): StoreState {
+  const knownLines = state.lines.filter((line) => KNOWN_PRODUCT_IDS.has(line.productId));
+  const knownSlotId =
+    state.slotId !== null && KNOWN_SLOT_IDS.has(state.slotId) ? state.slotId : null;
+  if (knownLines.length === state.lines.length && knownSlotId === state.slotId) {
+    return state;
+  }
+  return { ...state, lines: knownLines, slotId: knownSlotId };
+}
+
 interface StorageLike {
   getItem(key: string): string | null;
   removeItem(key: string): void;
@@ -138,7 +166,7 @@ export function loadStateFromStorage(storage: StorageLike): StoreState {
     storage.removeItem(STORAGE_KEY);
     return initialState;
   }
-  return parsed;
+  return sanitizeReferentialIntegrity(parsed);
 }
 
 // État de démonstration uniquement (spec P01 §2 : en mémoire + `localStorage`, aucun appel réseau,
@@ -268,9 +296,11 @@ export function useCartStore(): StoreApi {
     mutate((current) => ({ ...current, guest }));
   }, []);
   // L10 (audit-1.md) : le panier et les coordonnées invité (nom, téléphone, note) sont purgés une
-  // fois la commande de démonstration passée — ni conservés indéfiniment dans `localStorage`
-  // (`.claude/rules/security.md` : minimisation des données), ni source d'une seconde commande à
-  // 0 CHF si l'utilisateur revient en arrière sur `/paiement`.
+  // fois la commande de démonstration passée — pour ne pas les conserver indéfiniment dans
+  // `localStorage` (`.claude/rules/security.md` : minimisation des données). Vider `lines` ici ne
+  // suffit **pas**, à lui seul, à empêcher une seconde commande si l'utilisateur revient en arrière
+  // sur `/paiement` : c'était inexact (N2, audit-2.md) — c'est `PaymentScreen` qui doit refuser toute
+  // confirmation avec un panier vide, y compris après une commande, voir sa garde dédiée.
   const confirmPayment = useCallback(() => {
     mutate((current) => ({
       ...current,

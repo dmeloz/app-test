@@ -27,7 +27,10 @@
   package = "@netlify/plugin-nextjs"
 
 # L7 (audit-1.md) : filet de sécurité pour les fichiers servis directement par le CDN Netlify — même
-# raison que `apps/storefront/netlify.toml`.
+# raison que `apps/storefront/netlify.toml`. HYPOTHÈSE (N6, audit-2.md), non vérifiée ici : voir le
+# commentaire équivalent dans `apps/storefront/netlify.toml` et
+# `docs/lots/P01-maquette/deploiement-netlify.md` (vérification `curl -I` après le premier
+# déploiement).
 [[headers]]
   for = "/*"
   [headers.values]

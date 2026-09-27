@@ -73,6 +73,37 @@ test("lignes modifiables : +/- de quantité met à jour le total, 0 retire la li
   await expect(page.getByText("Votre panier de démonstration est vide.")).toBeVisible();
 });
 
+// N1 (audit-2.md) : boutons +/- contextualisés avec le nom du produit (aucune ambiguïté quand
+// plusieurs lignes du panier ont les mêmes libellés bruts « Diminuer/Augmenter la quantité ») et
+// quantité exposée aux technologies d'assistance (`aria-hidden` retiré) — pas seulement visible à
+// l'écran. `ariaSnapshot()` inspecte l'arbre d'accessibilité réel, pas juste le texte affiché.
+test("quantité exposée aux technologies d'assistance après +/- (N1, audit-2.md)", async ({
+  page,
+}) => {
+  await page.goto(`${STOREFRONT_URL}/fr`);
+  await page.getByRole("button", { name: "Retrait" }).click();
+  const soupCard = page.locator("article", { hasText: "Salade de saison" });
+  await soupCard.getByRole("button", { name: "Ajouter au panier" }).click();
+  await page.getByRole("link", { name: "Voir le panier" }).click();
+
+  const increaseButton = page.getByRole("button", {
+    name: "Augmenter la quantité de Salade de saison",
+  });
+  const decreaseButton = page.getByRole("button", {
+    name: "Diminuer la quantité de Salade de saison",
+  });
+  const removeButton = page.getByRole("button", { name: "Retirer Salade de saison du panier" });
+  await expect(increaseButton).toBeVisible();
+  await expect(decreaseButton).toBeVisible();
+  await expect(removeButton).toBeVisible();
+
+  await increaseButton.click();
+  await expect(page.getByText("Total : 18.00 CHF")).toBeVisible();
+
+  const snapshot = await page.locator(".ui-quantity-control").first().ariaSnapshot();
+  expect(snapshot).toContain("2");
+});
+
 test("Payer exige un créneau (ou « dès que possible ») en plus d'un panier non vide", async ({
   page,
 }) => {
@@ -104,6 +135,47 @@ test("/paiement avec un panier vide affiche un message plutôt qu'un montant à 
   await expect(page.getByRole("button", { name: "Confirmer le paiement" })).toHaveCount(0);
   await page.getByRole("link", { name: "Retour au menu" }).click();
   await expect(page).toHaveURL(`${STOREFRONT_URL}/fr/menu`);
+});
+
+// N2 (audit-2.md) : le geste le plus naturel après une commande — le bouton « précédent » du
+// navigateur — ne doit plus jamais permettre une seconde confirmation sur un panier déjà vide.
+test("paiement puis retour arrière : plus de bouton Confirmer, message panier vide", async ({
+  page,
+}) => {
+  await page.goto(`${STOREFRONT_URL}/fr`);
+  await page.getByRole("button", { name: "Retrait" }).click();
+  const soupCard = page.locator("article", { hasText: "Salade de saison" });
+  await soupCard.getByRole("button", { name: "Ajouter au panier" }).click();
+  await page.getByRole("link", { name: "Voir le panier" }).click();
+
+  await page.getByRole("button", { name: "Payer" }).click();
+  await expect(page).toHaveURL(`${STOREFRONT_URL}/fr/paiement`);
+  await page.getByRole("button", { name: "Confirmer le paiement (démonstration)" }).click();
+  await expect(page).toHaveURL(`${STOREFRONT_URL}/fr/suivi`);
+
+  await page.goBack();
+  await expect(page).toHaveURL(`${STOREFRONT_URL}/fr/paiement`);
+  await expect(
+    page.getByText("Votre panier de démonstration est vide : rien à payer."),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Confirmer le paiement" })).toHaveCount(0);
+});
+
+// N2 (audit-2.md) : accès direct par l'URL à `/paiement`, sans passer par « Payer » (donc sans que
+// le panier ait jamais rempli les conditions de `canPay`) — le minimum de livraison non atteint doit
+// bloquer toute confirmation ici aussi, pas seulement au panier.
+test("livraison sous le minimum : accès direct à /paiement n'affiche aucun bouton Confirmer", async ({
+  page,
+}) => {
+  await page.goto(`${STOREFRONT_URL}/fr`);
+  await page.getByRole("button", { name: "Livraison" }).click();
+  const soupCard = page.locator("article", { hasText: "Salade de saison" });
+  await soupCard.getByRole("button", { name: "Ajouter au panier" }).click();
+
+  // Sous-total 9.00 CHF < minimum 20.00 CHF (mock/delivery.ts) ; jamais passé par « Payer ».
+  await page.goto(`${STOREFRONT_URL}/fr/paiement`);
+  await expect(page.getByRole("button", { name: "Confirmer le paiement" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Retour au panier" })).toBeVisible();
 });
 
 test("les coordonnées invitées et le panier sont purgés après le paiement simulé", async ({

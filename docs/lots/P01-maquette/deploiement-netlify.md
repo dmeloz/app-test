@@ -40,6 +40,22 @@ connexion réelle du dépôt :
    ">=24.21.0" }` ; `NODE_VERSION = "24"` dans les `netlify.toml` ne fixe qu'une branche majeure, pas
    la version mineure/patch minimale exacte — à confirmer que l'image Netlify pour Node 24 satisfait
    bien `>=24.21.0` au moment du déploiement.
+6. **(N6, audit-2.md) Portée réelle du bloc `[[headers]]` des `netlify.toml`.** HYPOTHÈSE, non
+   vérifiée ici (accès à `docs.netlify.com` bloqué) : ce bloc s'appliquerait à toute réponse Netlify
+   quelle que soit son origine (fonction Next.js ou CDN statique), pas seulement aux réponses rendues
+   par la fonction Next.js. Voir la vérification `curl -I` du point « Ce qui reste à vérifier après le
+   premier déploiement » ci-dessous.
+7. **(I3, audit-2.md) Deploy previews / branch deploys publics et barre d'outils Netlify.**
+   HYPOTHÈSE, non vérifiée ici : selon la configuration du compte/site, Netlify peut publier des
+   URL de prévisualisation (deploy previews sur pull request, branch deploys) accessibles publiquement
+   sans authentification, en plus du domaine de production `*.netlify.app` — à vérifier et, si
+   souhaité, désactiver ou protéger dans les réglages du site avant de démarcher un restaurant avec
+   une URL de prévisualisation. Netlify peut aussi injecter une barre d'outils (« Netlify badge »/
+   « deploy preview toolbar ») via un script tiers sur certains types de déploiement : la CSP à nonce
+   de ce lot (`src/proxy.ts`, `docs/architecture/rendering-and-csp.md`) ne l'autorise pas explicitement
+   et le bloquerait probablement (« aucun script tiers hors Stripe » côté paiement n'est pas concerné
+   ici, mais la CSP reste restrictive par défaut) — à observer à l'écran, sans supposer que la
+   fonctionnalité (si activée par le porteur) fonctionnera telle quelle.
 
 Aucune de ces hypothèses n'a été activée ou présumée vraie dans le code : les `netlify.toml` sont une
 proposition de configuration, pas une confirmation qu'elle fonctionnera telle quelle.
@@ -77,7 +93,15 @@ Ces étapes sont à exécuter par le porteur (compte, connexion du dépôt) ; l'
 5. Vérifier après le premier déploiement, sur téléphone réel : les 4 écrans (spec §2), le bandeau de
    démonstration sur chaque page, l'absence d'erreur console, et que la CSP à nonce ne bloque rien
    (ouvrir la console développeur mobile si possible, ou tester au préalable depuis un ordinateur avec
-   les outils de développement).
+   les outils de développement). **(N6, audit-2.md) Vérifier aussi, depuis un poste avec `curl`**,
+   que le bloc `[[headers]]` (point 6 ci-dessus) s'applique bien comme attendu, sur une page rendue
+   par la fonction Next.js **et** sur un asset statique servi directement par le CDN :
+   ```
+   curl -I https://<site>.netlify.app/fr
+   curl -I https://<site>.netlify.app/_next/static/<chemin réel d'un asset>
+   ```
+   et confirmer la présence de `x-robots-tag: noindex, nofollow` dans les deux réponses (pas
+   seulement la première) avant de considérer ce point vérifié.
 6. En cas d'échec lié au point 1 (rendu dynamique/`proxy.ts` non pris en charge tel quel), ne pas
    forcer une configuration non documentée : revenir à l'option 1 de la spec (`pnpm dev` en réseau
    local) en attendant une vérification plus poussée, ou solliciter à nouveau un agent avec accès à la

@@ -68,6 +68,34 @@ test.describe("localStorage corrompu — récupération propre (M3, audit-1.md)"
     expect(pageErrors, `Erreurs JS non interceptées : ${pageErrors.join("\n")}`).toHaveLength(0);
   });
 
+  // N3 (audit-2.md) : un état `localStorage` de forme valide (M3) mais référençant un produit/un
+  // créneau qui n'existe plus dans le mock (menu modifié entre deux déploiements, clé `-v1`
+  // inchangée) ne doit pas laisser le panier dans un état incohérent (« Payer » activé sans produit
+  // réel, total à 0 CHF) : la ligne et le créneau inconnus sont ignorés au chargement.
+  test("storefront /fr/panier : produit et créneau inconnus → panier traité comme vide, Payer désactivé", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem(
+        "demo-storefront-state-v1",
+        JSON.stringify({
+          channel: "pickup",
+          lines: [{ lineId: "l1", productId: "n-existe-pas", quantity: 1, selections: [] }],
+          slotId: "slot-zzz",
+          asap: false,
+          guest: { name: "", phone: "", note: "" },
+          order: null,
+        }),
+      );
+    });
+
+    await page.goto(`${STOREFRONT_URL}/fr/panier`);
+    await page.waitForLoadState("networkidle");
+
+    await expect(page.getByText("Votre panier de démonstration est vide.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Payer" })).toBeDisabled();
+  });
+
   test("backoffice /fr : `orders` non-tableau → page rendue proprement, 0 erreur console, clé purgée", async ({
     page,
   }) => {
