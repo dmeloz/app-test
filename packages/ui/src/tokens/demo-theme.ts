@@ -58,4 +58,10 @@ export const demoTheme: DesignTokens = {
   },
   // `.claude/rules/frontend.md` : cibles tactiles ≥ 24×24 px CSS (viser 44×44) ; AC-P01 vise 44px.
   minTapTarget: "44px",
+  size: {
+    checkbox: "20px",
+    productPhotoHeight: "96px",
+    containerMaxWidth: "480px",
+    cartBarClearance: "96px",
+  },
 };

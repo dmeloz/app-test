@@ -50,6 +50,35 @@ describe("formatMoney", () => {
     );
   });
 
+  // M4 (audit-1.md) : le nombre de décimales de la plus petite unité dépend de la devise (norme ISO
+  // 4217), pas toujours 2 — JPY n'a aucune subdivision (0 décimale), BHD en a 3 (le fils). Valeurs
+  // choisies sous 1000 (unité entière) pour ne dépendre d'aucun séparateur de milliers (déjà instable
+  // entre versions d'ICU, voir le test précédent) — seul le nombre de décimales est vérifié ici.
+  // Le caractère d'espacement entre le montant et le code devise dépend lui aussi de l'ICU
+  // (espace normale ou insécable U+00A0/U+202F selon la version) : normalisé avant comparaison,
+  // comme le fait déjà le test du séparateur de milliers ci-dessus.
+  function normalizeSpaces(value: string): string {
+    return value.replace(/[\s\u00a0\u202f]/gu, " ");
+  }
+
+  it("formate un montant JPY (0 décimale, aucune subdivision) — la plus petite unité est le yen", () => {
+    expect(
+      new Intl.NumberFormat("fr-CH", { style: "currency", currency: "JPY" }).resolvedOptions()
+        .maximumFractionDigits,
+    ).toBe(0);
+    expect(normalizeSpaces(formatMoney(7, "JPY", "fr-CH"))).toBe("7 JPY");
+    expect(normalizeSpaces(formatMoney(7, "JPY", "en-CH"))).toBe("JPY 7");
+  });
+
+  it("formate un montant BHD (3 décimales) — la plus petite unité est le fils (1/1000 BHD)", () => {
+    expect(
+      new Intl.NumberFormat("fr-CH", { style: "currency", currency: "BHD" }).resolvedOptions()
+        .maximumFractionDigits,
+    ).toBe(3);
+    expect(normalizeSpaces(formatMoney(1234, "BHD", "fr-CH"))).toBe("1.234 BHD");
+    expect(normalizeSpaces(formatMoney(1234, "BHD", "en-CH"))).toBe("BHD 1.234");
+  });
+
   it("refuse un code de devise invalide", () => {
     expect(() => formatMoney(100, "chf", "fr-CH")).toThrow(MoneyFormatError);
     expect(() => formatMoney(100, "SWISS", "fr-CH")).toThrow(MoneyFormatError);

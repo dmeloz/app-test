@@ -54,4 +54,13 @@ export interface DesignTokens {
     readonly md: string;
   };
   readonly minTapTarget: string;
+  // L9 (audit-1.md) : tailles auparavant codées en dur dans la feuille de style (checkbox/radio,
+  // photo de produit, largeur maximale du conteneur, dégagement de la barre de panier fixe) —
+  // désormais des tokens comme le reste (ADR 0015 : « tokens uniquement »).
+  readonly size: {
+    readonly checkbox: string;
+    readonly productPhotoHeight: string;
+    readonly containerMaxWidth: string;
+    readonly cartBarClearance: string;
+  };
 }

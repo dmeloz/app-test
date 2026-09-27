@@ -22,6 +22,10 @@ export interface OrderCardProps {
   readonly onAccept?: () => void;
   readonly onRefuse?: () => void;
   readonly onReady?: () => void;
+  /** L10 (audit-1.md) : surbrillance visuelle de la dernière commande arrivée (colonne « Nouvelles »). */
+  readonly highlighted?: boolean;
+  /** Libellé déjà traduit affiché avec la surbrillance (jamais la couleur seule). */
+  readonly highlightLabel?: string;
 }
 
 // Carte de commande du tableau de service (spec P01 §2, écran 4 ; inspiration R1 —
@@ -42,9 +46,17 @@ export function OrderCard({
   onAccept,
   onRefuse,
   onReady,
+  highlighted = false,
+  highlightLabel,
 }: OrderCardProps): ReactElement {
+  const classes = ["ui-card", "ui-order-card", highlighted ? "ui-order-card--highlight" : ""]
+    .filter(Boolean)
+    .join(" ");
   return (
-    <article className="ui-card ui-order-card" aria-label={`${orderNumber} — ${statusLabel}`}>
+    <article className={classes} aria-label={`${orderNumber} — ${statusLabel}`}>
+      {highlighted && highlightLabel ? (
+        <p className="ui-badge ui-order-card__highlight-label">{highlightLabel}</p>
+      ) : null}
       <div className="ui-order-card__header">
         <span className="ui-order-card__number">{orderNumber}</span>
         <StatusBadge status={status} label={statusLabel} />

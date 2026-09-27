@@ -33,8 +33,8 @@ a { color: var(--color-focus-ring); }
 }
 
 .ui-container {
-  max-width: 480px; margin: 0 auto; padding: var(--space-md);
-  padding-bottom: calc(96px + var(--space-md));
+  max-width: var(--size-container-max-width); margin: 0 auto; padding: var(--space-md);
+  padding-bottom: calc(var(--size-cart-bar-clearance) + var(--space-md));
 }
 
 .ui-stack { display: flex; flex-direction: column; gap: var(--space-md); }
@@ -59,7 +59,9 @@ a { color: var(--color-focus-ring); }
 .ui-button--danger { background: var(--color-danger); color: var(--color-danger-contrast); }
 .ui-button--ghost { background: transparent; color: var(--color-text); border-color: var(--color-border); }
 .ui-button--block { width: 100%; }
-.ui-button--sm { min-height: 36px; padding: var(--space-xs) var(--space-sm); font-size: var(--font-size-sm); }
+/* M1 (audit-1.md) : la variante « sm » ne réduit plus la hauteur minimale — .ui-button impose déjà
+   min-height: var(--min-tap-target) (44 px), pour toutes les variantes de bouton sans exception. */
+.ui-button--sm { padding: var(--space-xs) var(--space-sm); font-size: var(--font-size-sm); }
 
 .ui-pill-nav { display: flex; gap: var(--space-xs); flex-wrap: wrap; }
 .ui-pill {
@@ -99,7 +101,7 @@ a { color: var(--color-focus-ring); }
 
 .ui-product-card { padding: 0; overflow: hidden; }
 .ui-product-card__photo {
-  height: 96px; background: var(--color-surface-alt); color: var(--color-text-muted);
+  height: var(--size-product-photo-height); background: var(--color-surface-alt); color: var(--color-text-muted);
   display: flex; align-items: center; justify-content: center;
   font-size: var(--font-size-sm); font-weight: var(--font-weight-bold);
   border-bottom: 1px solid var(--color-border);
@@ -114,13 +116,25 @@ a { color: var(--color-focus-ring); }
 .ui-option-group { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md); }
 .ui-option-group__legend { font-weight: var(--font-weight-bold); padding: 0 var(--space-xs); }
 .ui-option-group__hint { color: var(--color-text-muted); font-size: var(--font-size-sm); margin: 0 0 var(--space-xs) 0; }
+/* M1 (audit-1.md) : align-items: stretch (au lieu de center) pour que le label — cible tactile
+   mesurée par e2e/tests/demo-touch-targets.spec.ts (label[for]) — remplisse toute la hauteur de la
+   ligne (>= 44 px), pas seulement la hauteur de son texte ; la case elle-même reste centrée
+   verticalement via align-self. */
 .ui-option-group__choice {
-  display: flex; align-items: center; gap: var(--space-sm);
+  display: flex; align-items: stretch; gap: var(--space-sm);
   min-height: var(--min-tap-target); padding: var(--space-xs) 0;
 }
-.ui-option-group__choice input { width: 20px; height: 20px; flex-shrink: 0; }
-.ui-option-group__choice label { flex: 1; }
+.ui-option-group__choice input {
+  width: var(--size-checkbox); height: var(--size-checkbox); flex-shrink: 0; align-self: center;
+}
+.ui-option-group__choice label {
+  flex: 1; display: flex; align-items: center; min-height: var(--min-tap-target);
+}
 .ui-option-group__error { color: var(--color-danger); font-size: var(--font-size-sm); }
+
+/* L10 (audit-1.md) : boutons +/- de quantité par ligne de panier. */
+.ui-quantity-control { display: flex; align-items: center; gap: var(--space-sm); }
+.ui-quantity-control__value { min-width: var(--min-tap-target); text-align: center; }
 
 .ui-cart-bar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
@@ -129,6 +143,11 @@ a { color: var(--color-focus-ring); }
   padding: var(--space-sm) var(--space-md);
   padding-bottom: calc(var(--space-sm) + env(safe-area-inset-bottom, 0px));
 }
+
+/* L10 (audit-1.md) : surbrillance visuelle de la dernière commande arrivée — jamais la couleur
+   seule, un badge textuel l'accompagne (OrderCard.tsx, highlightLabel). */
+.ui-order-card--highlight { border-color: var(--color-primary); border-width: 2px; box-shadow: var(--shadow-md); }
+.ui-order-card__highlight-label { align-self: flex-start; background: var(--color-primary); color: var(--color-primary-contrast); }
 
 .ui-order-card { display: flex; flex-direction: column; gap: var(--space-sm); }
 .ui-order-card__header { display: flex; justify-content: space-between; align-items: center; gap: var(--space-sm); }
@@ -142,7 +161,12 @@ a { color: var(--color-focus-ring); }
 .ui-board__column-title { font-size: var(--font-size-lg); font-weight: var(--font-weight-bold); margin: 0; }
 
 .ui-field { display: flex; flex-direction: column; gap: var(--space-xs); }
-.ui-field label { font-weight: var(--font-weight-bold); }
+/* M1 (audit-1.md) : cible tactile >= 44 px pour tout label[for] (champ invité, motif de refus),
+   pas seulement pour les cases à cocher — mesuré par demo-touch-targets.spec.ts. */
+.ui-field label {
+  font-weight: var(--font-weight-bold); display: flex; align-items: center;
+  min-height: var(--min-tap-target);
+}
 .ui-input, .ui-textarea, .ui-select {
   min-height: var(--min-tap-target); border: 1px solid var(--color-border); border-radius: var(--radius-sm);
   padding: var(--space-sm); font-size: var(--font-size-md); font-family: inherit; background: var(--color-bg);
@@ -162,8 +186,8 @@ a { color: var(--color-focus-ring); }
 .ui-stepper { display: flex; flex-direction: column; gap: var(--space-sm); }
 .ui-stepper__step { display: flex; align-items: center; gap: var(--space-sm); }
 .ui-stepper__dot {
-  width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--color-border);
-  flex-shrink: 0; background: var(--color-bg);
+  width: var(--size-checkbox); height: var(--size-checkbox); border-radius: 50%;
+  border: 2px solid var(--color-border); flex-shrink: 0; background: var(--color-bg);
 }
 .ui-stepper__step--done .ui-stepper__dot { background: var(--color-primary); border-color: var(--color-primary); }
 .ui-stepper__step--current .ui-stepper__dot { border-color: var(--color-primary); }

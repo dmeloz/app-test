@@ -3,7 +3,7 @@
 // leurs textes et valeurs déjà résolus par l'app appelante.
 export type { DesignTokens } from "./tokens/types.js";
 export { demoTheme } from "./tokens/demo-theme.js";
-export { tokensToCssVariables } from "./tokens/to-css.js";
+export { tokensToCssVariables, DesignTokenError } from "./tokens/to-css.js";
 export { contrastRatio, meetsAA, ContrastError } from "./tokens/contrast.js";
 export { DEMO_STYLESHEET } from "./themes/demo/stylesheet.js";
 
