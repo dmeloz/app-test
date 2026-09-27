@@ -2,7 +2,7 @@
   "name": "storefront",
   "version": "0.0.0",
   "private": true,
-  "description": "Site public multi-domaine du restaurant (Next.js App Router, PWA) — lot L00 : page statique FR/EN.",
+  "description": "Site public multi-domaine du restaurant (Next.js App Router, PWA) — lot P01 : maquette cliquable de démonstration.",
   "scripts": {
     "build": "next build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -11,6 +11,7 @@
     "start": "next start --port 3100"
   },
   "dependencies": {
+    "@app/ui": "workspace:*",
     "next": "16.3.6",
     "react": "19.3.0",
     "react-dom": "19.3.0"

@@ -90,6 +90,11 @@ const CASES = [
     label: 'packages/domain → type import("...") (N9)',
   },
   {
+    file: "packages/ui/src/__lint-fixtures__/imports-storefront-mock.ts",
+    ruleId: "import-x/no-restricted-paths",
+    label: "packages/ui → apps/storefront/src/mock (AC-P01-11)",
+  },
+  {
     file: "apps/storefront/src/__lint-fixtures-typed__/img-element.tsx",
     ruleId: "@next/next/no-img-element",
     label: "storefront → <img> brut (M2)",

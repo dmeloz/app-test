@@ -2,7 +2,7 @@
   "name": "backoffice",
   "version": "0.0.0",
   "private": true,
-  "description": "Back-office personnel (Next.js App Router) — lot L00 : page statique FR/EN.",
+  "description": "Back-office personnel (Next.js App Router) — lot P01 : tableau de service de démonstration.",
   "scripts": {
     "build": "next build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -11,6 +11,7 @@
     "start": "next start --port 3101"
   },
   "dependencies": {
+    "@app/ui": "workspace:*",
     "next": "16.3.6",
     "react": "19.3.0",
     "react-dom": "19.3.0"

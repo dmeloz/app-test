@@ -10,7 +10,8 @@ jusqu'à la fin ».
 4. OPUS    audite                  diff, sécurité, multi-tenant, paiements, régressions, qualité des tests
 5. SONNET  corrige                 tous les BLOCKER et HIGH (MEDIUM : corrigés ou justifiés)
 6. OPUS    valide définitivement   contre-audit → APPROVED
-7. OPUS    fusionne               PR fusionnée si audit APPROVED + CI verte + aucun conflit (règle 11)
+7. OPUS    fusionne               PR non brouillon, checks `ci`+`docker-api` verts, aucun conflit,
+                                  approbations humaines obtenues, audit APPROVED sur le SHA fusionné (règle 11)
 8. HUMAIN  autorise                déploiement de production
 ```
 
@@ -25,7 +26,7 @@ jusqu'à la fin ».
 | 4 | Opus | sous-agents `auditor-opus` (+ `security-opus` si lot critique) | `audit-1.md` (+ `security-1.md`) |
 | 5 | Sonnet | sous-agent `developer-sonnet` avec la liste des constats | commits + rapport mis à jour |
 | 6 | Opus | sous-agent `auditor-opus` (contre-audit) | `audit-2.md` → `APPROVED` |
-| 7 | Opus (fil principal) | fusion de la PR (merge commit) si audit `APPROVED`, checks `ci` + `docker-api` verts, aucun conflit | PR fusionnée, commentaire de fusion citant l'audit |
+| 7 | Opus (fil principal) | fusion de la PR (merge commit, jamais `gh pr merge --admin` ni modification du ruleset/de la protection de branche — G4) si audit `APPROVED` (G2 : tous les audits requis, portant sur le SHA fusionné), checks `ci` + `docker-api` nommés verts, aucun conflit, PR non brouillon, approbations humaines obligatoires déjà obtenues (G3) | PR fusionnée, commentaire de fusion citant l'audit |
 | 8 | Humain | autorisation du déploiement de production | journal de déploiement |
 
 Les boucles 4 → 5 → 6 se répètent tant que le verdict n'est pas `APPROVED`. Au-delà de 3 boucles sur un
@@ -54,12 +55,24 @@ sécurité · mise en production majeure.
 
 Pour ces lots : `security-opus` en plus de `auditor-opus`, et validation humaine de la spec **obligatoire**.
 
+**G2 (audit-7, gouvernance)** : « audit indépendant `APPROVED` » (règle 11 du `CLAUDE.md`) signifie
+*tous* les audits requis ci-dessus pour le lot (donc `security-opus` en plus d'`auditor-opus` pour un
+lot critique), et porte sur le SHA effectivement fusionné — pas un SHA antérieur. Un commit ajouté
+après le dernier audit `APPROVED` doit soit être lui-même repris dans un nouvel audit, soit se limiter
+strictement à de la documentation sans effet sur le code, les hooks ou la CI (comme documenté au cas
+par cas dans le rapport d'implémentation du lot, cf. décision du fil principal, `audit-7.md`, L00).
+
 ## Approbation humaine obligatoire (quel que soit le lot)
 
 Architecture majeure · nouvelle dépendance de production · contrat API public · migration destructive ·
 modèle de tenancy · règle fiscale ou légale · calcul de prix ou de taxe · paiement/remboursement/transfert ·
 allergènes · permissions · secret ou configuration de production · déploiement de production ·
 suppression ou export massif · activation de l'alcool.
+
+**G3 (audit-7, gouvernance)** : quand une de ces approbations s'applique à un lot, elle doit être
+obtenue **avant** la fusion de la PR (règle 11 du `CLAUDE.md`) — pas après coup. Le fil principal
+vérifie explicitement, au moment de fusionner, que chaque approbation requise par le lot est déjà
+tracée (réponse écrite du porteur, citée dans le rapport d'implémentation ou la spec).
 
 ## Vérification du modèle réellement utilisé
 

@@ -21,6 +21,7 @@
     "dev": "turbo run dev --parallel"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@eslint/js": "10.0.1",
     "@next/eslint-plugin-next": "16.3.6",
     "@playwright/test": "1.63.0",

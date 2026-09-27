@@ -1,0 +1,37 @@
+# Configuration Netlify — site « backoffice » (maquette de démonstration P01, décision D-P01-1).
+#
+# HYPOTHÈSE — À VÉRIFIER PAR LE PORTEUR DANS LA DOCUMENTATION OFFICIELLE avant toute connexion réelle
+# du dépôt — voir `apps/storefront/netlify.toml` (mêmes réserves) et
+# `docs/lots/P01-maquette/deploiement-netlify.md`.
+#
+# L7 (audit-1.md) — HYPOTHÈSES SUPPLÉMENTAIRES, À VÉRIFIER PAR LE PORTEUR (mêmes réserves que
+# `apps/storefront/netlify.toml`) : prise en charge de `pnpm@12.6.0` via Corepack et de Node
+# >= 24.21.0 (`engines`/`packageManager` du `package.json` racine) par l'image de build Netlify.
+#
+# Second site Netlify du même dépôt (ADR 0010), créé avec le répertoire de base `apps/backoffice`.
+[build]
+  base = "apps/backoffice"
+  command = "cd ../.. && pnpm install --frozen-lockfile && pnpm exec turbo run build --filter=backoffice"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "24"
+
+# HYPOTHÈSE : voir `apps/storefront/netlify.toml` — mêmes réserves sur `proxy.ts` et le rendu
+# dynamique par requête.
+#
+# L7 (audit-1.md) : choix explicite — aucune `version` n'est épinglée ci-dessous (même raison que
+# `apps/storefront/netlify.toml` : décision assumée de s'appuyer sur la détection/résolution
+# automatique de Netlify, pas un oubli).
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# L7 (audit-1.md) : filet de sécurité pour les fichiers servis directement par le CDN Netlify — même
+# raison que `apps/storefront/netlify.toml`. HYPOTHÈSE (N6, audit-2.md), non vérifiée ici : voir le
+# commentaire équivalent dans `apps/storefront/netlify.toml` et
+# `docs/lots/P01-maquette/deploiement-netlify.md` (vérification `curl -I` après le premier
+# déploiement).
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"

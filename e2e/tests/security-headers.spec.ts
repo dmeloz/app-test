@@ -4,9 +4,17 @@ import { expect, test } from "@playwright/test";
 const STOREFRONT_URL = "http://127.0.0.1:3100";
 const BACKOFFICE_URL = "http://127.0.0.1:3101";
 
+// L4 (audit-1.md) : routes P01 ajoutées — jusqu'ici seules les racines `/fr`/`/en` étaient couvertes
+// ici (le rapport d'implémentation affirmait à tort une vérification « sur toutes les routes
+// ajoutées », voir `implementation-report.md`, section « Corrections audit-1 »). Le back-office n'a
+// qu'une seule route (spec P01 §2, écran 4).
 const APPS = [
-  { name: "storefront", baseUrl: STOREFRONT_URL },
-  { name: "backoffice", baseUrl: BACKOFFICE_URL },
+  {
+    name: "storefront",
+    baseUrl: STOREFRONT_URL,
+    paths: ["", "/menu", "/panier", "/paiement", "/suivi"],
+  },
+  { name: "backoffice", baseUrl: BACKOFFICE_URL, paths: [""] },
 ];
 const LOCALES = ["fr", "en"] as const;
 
@@ -19,43 +27,49 @@ const LOCALES = ["fr", "en"] as const;
 for (const app of APPS) {
   test.describe(`${app.name} — CSP et en-têtes de sécurité`, () => {
     for (const locale of LOCALES) {
-      test(`/${locale} : 0 erreur console/JS, en-têtes de sécurité présents`, async ({ page }) => {
-        const consoleErrors: string[] = [];
-        const pageErrors: string[] = [];
+      for (const path of app.paths) {
+        test(`/${locale}${path} : 0 erreur console/JS, en-têtes de sécurité présents`, async ({
+          page,
+        }) => {
+          const consoleErrors: string[] = [];
+          const pageErrors: string[] = [];
 
-        page.on("console", (message: ConsoleMessage) => {
-          if (message.type() === "error") {
-            consoleErrors.push(message.text());
-          }
+          page.on("console", (message: ConsoleMessage) => {
+            if (message.type() === "error") {
+              consoleErrors.push(message.text());
+            }
+          });
+          page.on("pageerror", (error: Error) => {
+            pageErrors.push(error.message);
+          });
+
+          const response = await page.goto(`${app.baseUrl}/${locale}${path}`);
+          expect(response?.status()).toBe(200);
+
+          // Laisse le temps à l'hydratation (et à toute erreur asynchrone) de se produire avant de
+          // vérifier la console — une page CSP-cassée jette précisément à ce moment-là.
+          await page.waitForLoadState("networkidle");
+
+          const headers = response?.headers() ?? {};
+          expect(headers["content-security-policy"]).toBeTruthy();
+          expect(headers["content-security-policy"]).toContain("frame-ancestors 'none'");
+          expect(headers["content-security-policy"]).toContain("object-src 'none'");
+          expect(headers["content-security-policy"]).toContain("base-uri 'self'");
+          expect(headers["x-content-type-options"]).toBe("nosniff");
+          expect(headers["referrer-policy"]).toBeTruthy();
+          // P01 (D-P01-1) : la maquette de démonstration ne doit jamais être indexée, sur aucune route.
+          expect(headers["x-robots-tag"]).toBe("noindex, nofollow");
+
+          const cspErrors = consoleErrors.filter((text) =>
+            /content security policy|refused to (execute|load|apply)/i.test(text),
+          );
+          expect(cspErrors, `Erreurs CSP en console : ${cspErrors.join("\n")}`).toHaveLength(0);
+          expect(consoleErrors, `Erreurs console : ${consoleErrors.join("\n")}`).toHaveLength(0);
+          expect(pageErrors, `Erreurs JS non interceptées : ${pageErrors.join("\n")}`).toHaveLength(
+            0,
+          );
         });
-        page.on("pageerror", (error: Error) => {
-          pageErrors.push(error.message);
-        });
-
-        const response = await page.goto(`${app.baseUrl}/${locale}`);
-        expect(response?.status()).toBe(200);
-
-        // Laisse le temps à l'hydratation (et à toute erreur asynchrone) de se produire avant de
-        // vérifier la console — une page CSP-cassée jette précisément à ce moment-là.
-        await page.waitForLoadState("networkidle");
-
-        const headers = response?.headers() ?? {};
-        expect(headers["content-security-policy"]).toBeTruthy();
-        expect(headers["content-security-policy"]).toContain("frame-ancestors 'none'");
-        expect(headers["content-security-policy"]).toContain("object-src 'none'");
-        expect(headers["content-security-policy"]).toContain("base-uri 'self'");
-        expect(headers["x-content-type-options"]).toBe("nosniff");
-        expect(headers["referrer-policy"]).toBeTruthy();
-
-        const cspErrors = consoleErrors.filter((text) =>
-          /content security policy|refused to (execute|load|apply)/i.test(text),
-        );
-        expect(cspErrors, `Erreurs CSP en console : ${cspErrors.join("\n")}`).toHaveLength(0);
-        expect(consoleErrors, `Erreurs console : ${consoleErrors.join("\n")}`).toHaveLength(0);
-        expect(pageErrors, `Erreurs JS non interceptées : ${pageErrors.join("\n")}`).toHaveLength(
-          0,
-        );
-      });
+      }
     }
   });
 }

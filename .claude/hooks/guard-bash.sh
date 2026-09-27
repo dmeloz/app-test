@@ -42,17 +42,35 @@ if mode == "raw":
     sys.stdout.buffer.write(cmd.encode("utf-8", "replace"))
     sys.exit(0)
 interp = re.compile(r"(?<![\w.-])(bash|sh|zsh|dash|ksh|python3?|node|perl|ruby|php|ssh|eval|source|xargs|env)\b")
-heredoc = re.compile(r"(?<!<)<<(?!<)-?\s*([\x27\x22]?)([A-Za-z_][A-Za-z0-9_]*)\1(?=[\s;&|<>)]|$)")
+# N17 (audit-7) : groupe dedie pour le tiret de `<<-` (tabulations de tete tolerees cote
+# terminateur, seule variante autorisee par bash) -- voir `real_terminator_match` ci-dessous.
+# (Commentaires Python de ce bloc sans accent ni apostrophe : ce bloc reste dans une chaine bash
+# entre apostrophes simples, ligne 28 -- une apostrophe ici romprait la chaine, cf. correctif N17.)
+heredoc = re.compile(r"(?<!<)<<(?!<)(-)?\s*([\x27\x22]?)([A-Za-z_][A-Za-z0-9_]*)\2(?=[\s;&|<>)]|$)")
 def real_heredoc(prefix):
     if prefix.count("\x27") % 2 or prefix.count("\x22") % 2:
         return False
     if re.search(r"(^|\s)#", prefix) or "((" in prefix:
         return False
     return True
-out, term, keep = [], None, False
+# N17 (audit-7) : bash exige une correspondance EXACTE de la ligne de terminaison pour un `<<`
+# simple (aucun espace de tete ni de fin tolere -- verifie dans cet environnement : `bash <<EOF` avec
+# un EOF indente ou suivi d espaces ne termine PAS le heredoc, seule la ligne strictement egale au
+# delimiteur le fait). Seul `<<-` tolere des tabulations de tete (et uniquement celles-ci, jamais des
+# espaces ni de fin de ligne). L ancien `line.strip() == term` (tolerant a tort les deux, pour les
+# deux variantes) provoquait de faux marqueurs de fin : un texte de heredoc mentionnant une ligne
+# ressemblant au delimiteur (indentee, ou suivie d espaces) terminait le heredoc prematurement, faisant
+# fuiter le reste du corps (potentiellement une mention de .env) hors de la zone retiree par ce mode
+# stripped, et declenchant un faux positif de blocage sur une commande legitime (ex. rediger un
+# document qui mentionne .env). Correspondance stricte = moins de faux marqueurs, fidele a bash.
+def real_terminator_match(line, term, dash):
+    if dash:
+        return line.lstrip("\t") == term
+    return line == term
+out, term, keep, dash = [], None, False, False
 for line in cmd.split("\n"):
     if term is not None:
-        if line.strip() == term:
+        if real_terminator_match(line, term, dash):
             term = None
             out.append(line)
         elif keep:
@@ -61,7 +79,8 @@ for line in cmd.split("\n"):
     out.append(line)
     m = heredoc.search(line)
     if m and real_heredoc(line[: m.start()]):
-        term = m.group(2)
+        dash = bool(m.group(1))
+        term = m.group(3)
         keep = bool(interp.search(line))
 sys.stdout.buffer.write("\n".join(out).encode("utf-8", "replace"))
 ' "$1"
@@ -81,6 +100,15 @@ shopt -s nocasematch
 [[ "$cmd" =~ git[[:space:]].*push[[:space:]].*:(main|master)([[:space:]]|$) ]] && block "push direct sur main interdit"
 [[ "$cmd" =~ git[[:space:]]+(reset[[:space:]]+--hard|clean[[:space:]]+-[a-z]*f|filter-branch|filter-repo) ]] && block "commande git destructive"
 [[ "$cmd" =~ git[[:space:]].*(--no-verify) ]] && block "contournement des hooks git interdit"
+
+# G4 (audit-7, gouvernance) : la règle 11 du CLAUDE.md interdit de contourner les checks obligatoires
+# avant fusion (audit indépendant APPROVED, checks `ci`/`docker-api` verts) — bloqué ici aussi, pas
+# seulement dans le texte de la règle. `gh pr merge --admin` outrepasse la protection de branche ;
+# modifier ou supprimer un ruleset/une protection de branche via l'API GitHub a le même effet que
+# désactiver les checks. GET reste autorisé (lecture seule, pas de contournement).
+[[ "$cmd" =~ gh[[:space:]]+pr[[:space:]]+merge.*(--admin) ]] && block "fusion de PR via --admin (contournement des checks) interdite"
+[[ "$cmd" =~ gh[[:space:]]+api ]] && [[ "$cmd" =~ (rulesets|branches/[^[:space:]]*/protection) ]] && [[ "$cmd" =~ (-X|--method)[[:space:]]+(PUT|PATCH|POST|DELETE) ]] && block "modification du ruleset ou de la protection de branche via gh api interdite"
+[[ "$cmd" =~ gh[[:space:]]+ruleset[[:space:]]+(create|edit|update|delete|import) ]] && block "modification de ruleset via gh ruleset interdite"
 
 # Suppression massive
 [[ "$cmd" =~ rm[[:space:]]+(-[a-z]*r[a-z]*f|-[a-z]*f[a-z]*r)[a-z]*[[:space:]]+(/|~|\$HOME|\.|\*)([[:space:]]|$) ]] && block "suppression récursive dangereuse"
