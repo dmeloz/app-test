@@ -44,6 +44,16 @@ test("parcours client démo — accueil → menu → panier → paiement simulé
   // 3. Produit avec groupe d'options obligatoire (« Entrecôte », cuisson min=1 max=1) : l'ajout sans
   // sélection affiche l'erreur (AC-P01-04), puis réussit une fois la cuisson choisie.
   const entrecoteCard = page.locator("article", { hasText: "Entrecôte" });
+  // AC-P01-05 (contre-épreuve e2e, L4 audit-1.md : cette assertion était annoncée par l'ancien
+  // rapport d'implémentation sans exister réellement) : aucune case n'est cochée à l'ouverture,
+  // qu'elle soit obligatoire (cuisson) ou facultative (suppléments payants).
+  await expect(entrecoteCard.getByLabel("Saignant")).not.toBeChecked();
+  await expect(entrecoteCard.getByLabel("À point", { exact: false })).not.toBeChecked();
+  await expect(entrecoteCard.getByLabel("Bien cuit")).not.toBeChecked();
+  await expect(entrecoteCard.getByLabel("Fromage fondu", { exact: false })).not.toBeChecked();
+  await expect(entrecoteCard.getByLabel("Bacon", { exact: false })).not.toBeChecked();
+  await expect(entrecoteCard.getByLabel("Avocat", { exact: false })).not.toBeChecked();
+
   await entrecoteCard.getByRole("button", { name: "Ajouter au panier" }).click();
   await expect(entrecoteCard.getByRole("alert")).toContainText("Sélection incomplète");
   await entrecoteCard.getByLabel("À point", { exact: false }).check();

@@ -34,6 +34,10 @@ test("tableau de service démo — arrivée d'une commande, Accepter → Prête,
   await expect(orderCard).toBeVisible({ timeout: 10_000 });
   await expect(orderCard).toContainText("Nouvelle");
 
+  // L10 (audit-1.md) : surbrillance visuelle (texte + couleur, jamais la couleur seule) de la
+  // dernière commande arrivée — jusqu'ici seule une région `aria-live` masquée visuellement existait.
+  await expect(orderCard).toContainText("Nouvelle arrivée");
+
   // Accepter → passe en préparation.
   await orderCard.getByRole("button", { name: "Accepter" }).click();
   await expect(orderCard).toContainText("En préparation");

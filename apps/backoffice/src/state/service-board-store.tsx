@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { menuItems } from "../mock/menu-items";
 import { nextIncomingOrder } from "../mock/orders";
 import type { BoardOrderStatus, LocalizedText, MockMenuItem, MockOrder } from "../mock/types";
@@ -154,6 +154,12 @@ if (typeof window !== "undefined") {
   currentState = loadState();
 }
 const listeners = new Set<() => void>();
+// Portée module (pas un `useRef`) : un `useRef` se réinitialise si le composant démonte puis
+// remonte (observé ici — cette version de React/Next commet parfois deux passes de montage même en
+// production, hors StrictMode dev) ; seule une valeur au niveau du module survit à un remontage dans
+// la même session de page et garantit un unique amorçage automatique (spec P01 §2, une seule
+// commande fictive à l'arrivée).
+let autoSeeded = false;
 
 function emitChange(): void {
   for (const listener of listeners) {
@@ -211,7 +217,6 @@ export interface BoardApi extends BoardState {
  */
 export function useServiceBoard(): BoardApi {
   const state = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  const seeded = useRef(false);
 
   const simulateIncomingOrder = useCallback(() => {
     mutate((current) => {
@@ -224,10 +229,10 @@ export function useServiceBoard(): BoardApi {
   }, []);
 
   useEffect(() => {
-    if (seeded.current || currentState.orders.length > 0) {
+    if (autoSeeded || currentState.orders.length > 0) {
       return;
     }
-    seeded.current = true;
+    autoSeeded = true;
     const timer = setTimeout(() => {
       simulateIncomingOrder();
     }, 300);
@@ -259,7 +264,16 @@ export function useServiceBoard(): BoardApi {
   }, []);
   const resetDemo = useCallback(() => {
     mutate(() => initialState);
-  }, []);
+    // Rejoue l'amorçage automatique (spec P01 §2) : sans remontage du composant, l'effet
+    // d'amorçage ne se relance pas de lui-même — reproduit ici le même délai de démonstration.
+    autoSeeded = false;
+    setTimeout(() => {
+      if (!autoSeeded && currentState.orders.length === 0) {
+        autoSeeded = true;
+        simulateIncomingOrder();
+      }
+    }, 300);
+  }, [simulateIncomingOrder]);
 
   return {
     ...state,
