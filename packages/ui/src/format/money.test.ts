@@ -18,9 +18,26 @@ describe("formatMoney", () => {
     expect(formatMoney(0, "CHF", "fr-CH")).toBe("0.00 CHF");
   });
 
-  it("gère un grand montant avec le séparateur de milliers attendu par locale", () => {
-    expect(formatMoney(123456789, "CHF", "fr-CH")).toBe("1 234 567.89 CHF");
-    expect(formatMoney(123456789, "CHF", "en-CH")).toBe("CHF 1'234'567.89");
+  // Le séparateur de milliers dépend de la version d'ICU (Node 22 : U+202F en fr-CH ; Node 24 : « ' »).
+  // On compare donc au séparateur de groupe que fournit l'ICU courant, pas à un littéral figé.
+  it("gère un grand montant avec le séparateur de milliers de la locale (ICU courant)", () => {
+    const cases = [
+      ["fr-CH", "1234567.89 CHF"],
+      ["en-CH", "CHF 1234567.89"],
+    ] as const;
+    for (const [locale, expectedWithoutGroups] of cases) {
+      const group = new Intl.NumberFormat(locale)
+        .formatToParts(1234567)
+        .find((part) => part.type === "group")?.value;
+      expect(group).toBeDefined();
+      const formatted = formatMoney(123456789, "CHF", locale);
+      expect(formatted.split(group ?? "").length - 1).toBe(2);
+      const normalized = formatted
+        .split(group ?? "")
+        .join("")
+        .replace(/[\s\u00a0\u202f]/gu, " ");
+      expect(normalized).toBe(expectedWithoutGroups);
+    }
   });
 
   it("refuse un montant non entier (fraction de centime)", () => {
