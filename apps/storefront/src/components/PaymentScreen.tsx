@@ -6,7 +6,7 @@ import { Button } from "@app/ui";
 import type { Locale } from "../i18n/dictionary";
 import { formatChf } from "../mock/format";
 import type { MockCategory } from "../mock/types";
-import { cartTotalCents } from "../state/cart-calculations";
+import { orderTotalCents } from "../state/cart-calculations";
 import { useCartStore } from "../state/cart-store";
 
 interface PaymentDictionary {
@@ -14,6 +14,8 @@ interface PaymentDictionary {
   readonly notice: string;
   readonly totalLabel: string;
   readonly confirmButton: string;
+  readonly emptyCartWarning: string;
+  readonly backToMenu: string;
 }
 
 export interface PaymentScreenProps {
@@ -27,12 +29,28 @@ export interface PaymentScreenProps {
 // façon, spec §2 « Exclu »).
 export function PaymentScreen({ locale, dictionary, menu }: PaymentScreenProps): ReactElement {
   const router = useRouter();
-  const { lines, confirmPayment } = useCartStore();
-  const total = cartTotalCents(menu, lines);
+  const { channel, lines, order, confirmPayment } = useCartStore();
+  const total = orderTotalCents(menu, lines, channel);
 
   function handleConfirm(): void {
     confirmPayment();
     router.push(`/${locale}/suivi`);
+  }
+
+  // L10 (audit-1.md) : `/paiement` avec un panier vide (accès direct par l'URL, avant toute
+  // commande) affiche un message plutôt qu'un montant de 0 CHF payable.
+  if (lines.length === 0 && !order) {
+    return (
+      <main className="ui-container">
+        <div className="ui-stack">
+          <h1 className="ui-heading-xl">{dictionary.heading}</h1>
+          <p role="alert">{dictionary.emptyCartWarning}</p>
+          <a className="ui-button ui-button--secondary" href={`/${locale}/menu`}>
+            {dictionary.backToMenu}
+          </a>
+        </div>
+      </main>
+    );
   }
 
   return (

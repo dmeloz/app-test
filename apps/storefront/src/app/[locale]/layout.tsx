@@ -3,7 +3,9 @@ import { connection } from "next/server";
 import { headers } from "next/headers";
 import type { ReactNode } from "react";
 import { DemoBanner, ThemeStyle } from "@app/ui";
+import { ResetDemoButton } from "../../components/ResetDemoButton";
 import { getDictionary, isSupportedLocale, SUPPORTED_LOCALES } from "../../i18n/dictionary";
+import { restaurant } from "../../mock/restaurant";
 
 export function generateStaticParams(): Array<{ locale: string }> {
   return SUPPORTED_LOCALES.map((locale) => ({ locale }));
@@ -22,14 +24,15 @@ interface LocaleLayoutParams {
 // layout ci-dessous) — un segment invalide reste de la responsabilité de `page.tsx` (seule source de
 // vérité désormais). Voir `app/not-found.tsx`.
 //
-// P01 : le titre devient le nom du restaurant de démonstration (`dictionary.siteTitle`), identique
-// sur toutes les pages — pas de contenu métier dans les métadonnées.
+// P01 : le titre devient le nom du restaurant de démonstration, identique sur toutes les pages.
+// L8 (audit-1.md) : tiré de la donnée « tenant » (`restaurant.name`), plus jamais dupliqué dans le
+// dictionnaire i18n (un nom de restaurant n'est pas un texte traduisible).
 export async function generateMetadata({ params }: LocaleLayoutParams): Promise<Metadata> {
   const { locale } = await params;
   if (!isSupportedLocale(locale)) {
     return { title: "404 — Page introuvable / Page not found" };
   }
-  return { title: getDictionary(locale).siteTitle };
+  return { title: restaurant.name };
 }
 
 interface LocaleLayoutProps extends LocaleLayoutParams {
@@ -70,6 +73,16 @@ export default async function LocaleLayout({
       </head>
       <body>
         <DemoBanner text={bannerText} />
+        {/* M3 (audit-1.md) : bouton visible « Réinitialiser la démo » sur chaque page — hors du
+            bandeau de démonstration (AC-P01-07 : aucun bouton dans le bandeau lui-même). */}
+        <ResetDemoButton
+          label={
+            isSupportedLocale(locale)
+              ? getDictionary(locale).resetDemoLabel
+              : getDictionary("fr").resetDemoLabel
+          }
+          locale={isSupportedLocale(locale) ? locale : "fr"}
+        />
         {children}
       </body>
     </html>

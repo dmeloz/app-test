@@ -8,10 +8,19 @@ export function isSupportedLocale(value: string): value is Locale {
 }
 
 interface Dictionary {
-  readonly siteTitle: string;
+  // L8 (audit-1.md) : le nom du restaurant n'est plus dans `siteTitle` — un dictionnaire i18n ne
+  // contient que du texte d'interface, jamais une donnée métier ; le titre est composé dans
+  // `[locale]/layout.tsx` à partir de `titlePrefix` (traduit) et de `RESTAURANT_NAME`
+  // (`mock/restaurant.ts`, donnée « tenant »).
+  readonly titlePrefix: string;
   readonly banner: string;
+  // M3 (audit-1.md) : bouton visible « Réinitialiser la démo ».
+  readonly resetDemoLabel: string;
   readonly board: {
     readonly heading: string;
+    // L10 (audit-1.md) : surbrillance visuelle (texte + couleur, jamais la couleur seule) de la
+    // dernière commande arrivée dans la colonne « Nouvelles ».
+    readonly arrivalHighlightLabel: string;
     readonly columnNew: string;
     readonly columnPreparing: string;
     readonly columnReady: string;
@@ -40,10 +49,12 @@ interface Dictionary {
 
 const DICTIONARIES: Record<Locale, Dictionary> = {
   fr: {
-    siteTitle: "Back-office — Le Belvédère Imaginaire",
+    titlePrefix: "Back-office",
     banner: "Démonstration — aucune commande réelle",
+    resetDemoLabel: "Réinitialiser la démo",
     board: {
       heading: "Tableau de service",
+      arrivalHighlightLabel: "Nouvelle arrivée",
       columnNew: "Nouvelles",
       columnPreparing: "En préparation",
       columnReady: "Prêtes",
@@ -70,10 +81,12 @@ const DICTIONARIES: Record<Locale, Dictionary> = {
     },
   },
   en: {
-    siteTitle: "Back office — Le Belvédère Imaginaire",
+    titlePrefix: "Back office",
     banner: "Demo — no real orders",
+    resetDemoLabel: "Reset demo",
     board: {
       heading: "Service board",
+      arrivalHighlightLabel: "New arrival",
       columnNew: "New",
       columnPreparing: "Preparing",
       columnReady: "Ready",

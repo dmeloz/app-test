@@ -4,20 +4,34 @@ import { useRouter } from "next/navigation";
 import type { ChangeEvent, ReactElement } from "react";
 import { Button, SlotList } from "@app/ui";
 import type { Locale } from "../i18n/dictionary";
+import { MINIMUM_ORDER_FOR_DELIVERY_CENTS } from "../mock/delivery";
 import { formatChf } from "../mock/format";
 import { localize } from "../mock/localize";
 import type { MockCategory, MockSlot } from "../mock/types";
-import { allProducts, cartTotalCents, lineTotalCents } from "../state/cart-calculations";
+import {
+  allProducts,
+  cartTotalCents,
+  deliveryFeeCents,
+  isBelowDeliveryMinimum,
+  lineTotalCents,
+} from "../state/cart-calculations";
 import { useCartStore } from "../state/cart-store";
 
 interface CartDictionary {
   readonly heading: string;
   readonly emptyMessage: string;
   readonly removeLine: string;
+  readonly decreaseQuantity: string;
+  readonly increaseQuantity: string;
   readonly totalLabel: string;
+  readonly deliveryFeeLabel: string;
+  readonly minimumOrderPrefix: string;
+  readonly minimumOrderMissingPrefix: string;
+  readonly minimumOrderMissingSuffix: string;
   readonly slotHeading: string;
   readonly asapLabel: string;
   readonly slotUnavailable: string;
+  readonly slotRequiredWarning: string;
   readonly guestHeading: string;
   readonly guestName: string;
   readonly guestPhone: string;
@@ -37,8 +51,18 @@ export interface CartScreenProps {
 // choix « dès que possible » ou créneau, formulaire invité minimal, bouton « Payer ».
 export function CartScreen({ locale, dictionary, menu, slots }: CartScreenProps): ReactElement {
   const router = useRouter();
-  const { channel, lines, removeLine, slotId, asap, setSlot, setAsap, guest, setGuest } =
-    useCartStore();
+  const {
+    channel,
+    lines,
+    removeLine,
+    updateLineQuantity,
+    slotId,
+    asap,
+    setSlot,
+    setAsap,
+    guest,
+    setGuest,
+  } = useCartStore();
   const products = allProducts(menu);
 
   function handleGuestChange(field: "name" | "phone" | "note") {
@@ -51,8 +75,15 @@ export function CartScreen({ locale, dictionary, menu, slots }: CartScreenProps)
     router.push(`/${locale}/paiement`);
   }
 
-  const total = cartTotalCents(menu, lines);
-  const canPay = channel !== null && lines.length > 0;
+  // M2 (audit-1.md) : frais de livraison fictifs (canal livraison uniquement) et minimum de commande
+  // pour la livraison, tous deux inclus dans le total affiché.
+  const subtotal = cartTotalCents(menu, lines);
+  const fee = deliveryFeeCents(channel);
+  const total = subtotal + fee;
+  const belowMinimum = isBelowDeliveryMinimum(subtotal, channel);
+  // L10 (audit-1.md) : « Payer » exige un canal, un panier non vide, aucun avertissement de minimum
+  // non atteint, et soit « dès que possible » soit un créneau choisi (jamais aucun des deux).
+  const canPay = channel !== null && lines.length > 0 && !belowMinimum && (asap || slotId !== null);
 
   return (
     <main className="ui-container">
@@ -85,23 +116,57 @@ export function CartScreen({ locale, dictionary, menu, slots }: CartScreenProps)
               return (
                 <li key={line.lineId} className="ui-card">
                   <div className="ui-product-card__header">
-                    <span>
-                      {line.quantity}× {localize(product.name, locale)}
-                    </span>
+                    <span>{localize(product.name, locale)}</span>
                     <span>{formatChf(lineTotalCents(product, line), locale)}</span>
                   </div>
                   {optionLabels.length > 0 ? (
                     <p className="ui-text-muted">{optionLabels.join(", ")}</p>
                   ) : null}
-                  <Button variant="ghost" size="sm" onClick={() => removeLine(line.lineId)}>
-                    {dictionary.removeLine}
-                  </Button>
+                  {/* L10 (audit-1.md) : lignes modifiables — +/- de quantité, pas seulement retrait. */}
+                  <div className="ui-quantity-control">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label={dictionary.decreaseQuantity}
+                      onClick={() => updateLineQuantity(line.lineId, line.quantity - 1)}
+                    >
+                      −
+                    </Button>
+                    <span className="ui-quantity-control__value" aria-hidden="true">
+                      {line.quantity}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label={dictionary.increaseQuantity}
+                      onClick={() => updateLineQuantity(line.lineId, line.quantity + 1)}
+                    >
+                      +
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => removeLine(line.lineId)}>
+                      {dictionary.removeLine}
+                    </Button>
+                  </div>
                 </li>
               );
             })}
           </ul>
         )}
 
+        {/* M2 (audit-1.md) : frais et minimum affichés (spec P01 §2.3), canal livraison seulement. */}
+        {channel === "delivery" ? (
+          <p>
+            {dictionary.deliveryFeeLabel} : {formatChf(fee, locale)}
+          </p>
+        ) : null}
+        {belowMinimum ? (
+          <p role="alert">
+            {dictionary.minimumOrderPrefix} {formatChf(MINIMUM_ORDER_FOR_DELIVERY_CENTS, locale)}.{" "}
+            {dictionary.minimumOrderMissingPrefix}{" "}
+            {formatChf(MINIMUM_ORDER_FOR_DELIVERY_CENTS - subtotal, locale)}{" "}
+            {dictionary.minimumOrderMissingSuffix}
+          </p>
+        ) : null}
         <p className="ui-heading-lg">
           {dictionary.totalLabel} : {formatChf(total, locale)}
         </p>
@@ -117,16 +182,20 @@ export function CartScreen({ locale, dictionary, menu, slots }: CartScreenProps)
             <span>{dictionary.asapLabel}</span>
           </label>
           {!asap ? (
-            <SlotList
-              slots={slots.map((slot) => ({
-                id: slot.id,
-                label: localize(slot.label, locale),
-                available: slot.available,
-              }))}
-              selectedId={slotId}
-              onSelect={setSlot}
-              unavailableLabel={dictionary.slotUnavailable}
-            />
+            <>
+              <SlotList
+                slots={slots.map((slot) => ({
+                  id: slot.id,
+                  label: localize(slot.label, locale),
+                  available: slot.available,
+                }))}
+                selectedId={slotId}
+                onSelect={setSlot}
+                unavailableLabel={dictionary.slotUnavailable}
+              />
+              {/* L10 (audit-1.md) : « Payer » exige asap OU un créneau choisi — jamais aucun des deux. */}
+              {slotId === null ? <p role="alert">{dictionary.slotRequiredWarning}</p> : null}
+            </>
           ) : null}
         </section>
 

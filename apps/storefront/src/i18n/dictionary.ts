@@ -10,11 +10,11 @@ export function isSupportedLocale(value: string): value is Locale {
 }
 
 interface Dictionary {
-  readonly siteTitle: string;
   readonly banner: string;
+  // M3 (audit-1.md) : bouton visible « Réinitialiser la démo » sur chaque page (layout).
+  readonly resetDemoLabel: string;
   readonly localeSwitchLabel: string;
   readonly home: {
-    readonly heading: string;
     readonly statusOpen: string;
     readonly statusClosed: string;
     readonly estimatedDelayPrefix: string;
@@ -43,10 +43,17 @@ interface Dictionary {
     readonly heading: string;
     readonly emptyMessage: string;
     readonly removeLine: string;
+    readonly decreaseQuantity: string;
+    readonly increaseQuantity: string;
     readonly totalLabel: string;
+    readonly deliveryFeeLabel: string;
+    readonly minimumOrderPrefix: string;
+    readonly minimumOrderMissingPrefix: string;
+    readonly minimumOrderMissingSuffix: string;
     readonly slotHeading: string;
     readonly asapLabel: string;
     readonly slotUnavailable: string;
+    readonly slotRequiredWarning: string;
     readonly guestHeading: string;
     readonly guestName: string;
     readonly guestPhone: string;
@@ -59,6 +66,8 @@ interface Dictionary {
     readonly notice: string;
     readonly totalLabel: string;
     readonly confirmButton: string;
+    readonly emptyCartWarning: string;
+    readonly backToMenu: string;
   };
   readonly tracking: {
     readonly heading: string;
@@ -75,11 +84,10 @@ interface Dictionary {
 
 const DICTIONARIES: Record<Locale, Dictionary> = {
   fr: {
-    siteTitle: "Le Belvédère Imaginaire",
     banner: "Démonstration — aucune commande réelle",
+    resetDemoLabel: "Réinitialiser la démo",
     localeSwitchLabel: "Changer de langue",
     home: {
-      heading: "Le Belvédère Imaginaire",
       statusOpen: "Ouvert",
       statusClosed: "Fermé",
       estimatedDelayPrefix: "Délai estimé : environ",
@@ -108,10 +116,17 @@ const DICTIONARIES: Record<Locale, Dictionary> = {
       heading: "Panier et créneau",
       emptyMessage: "Votre panier de démonstration est vide.",
       removeLine: "Retirer",
+      decreaseQuantity: "Diminuer la quantité",
+      increaseQuantity: "Augmenter la quantité",
       totalLabel: "Total",
+      deliveryFeeLabel: "Frais de livraison",
+      minimumOrderPrefix: "Minimum de commande pour la livraison :",
+      minimumOrderMissingPrefix: "Il manque encore",
+      minimumOrderMissingSuffix: "pour atteindre ce minimum.",
       slotHeading: "Créneau",
       asapLabel: "Dès que possible",
       slotUnavailable: "Complet",
+      slotRequiredWarning: "Choisissez un créneau, ou cochez « Dès que possible ».",
       guestHeading: "Vos coordonnées (démonstration)",
       guestName: "Nom",
       guestPhone: "Téléphone",
@@ -125,6 +140,8 @@ const DICTIONARIES: Record<Locale, Dictionary> = {
         "Ceci est une démonstration : aucun paiement réel n'est effectué, aucune carte n'est demandée.",
       totalLabel: "Montant (démonstration)",
       confirmButton: "Confirmer le paiement (démonstration)",
+      emptyCartWarning: "Votre panier de démonstration est vide : rien à payer.",
+      backToMenu: "Retour au menu",
     },
     tracking: {
       heading: "Suivi de commande",
@@ -139,11 +156,10 @@ const DICTIONARIES: Record<Locale, Dictionary> = {
     },
   },
   en: {
-    siteTitle: "Le Belvédère Imaginaire",
     banner: "Demo — no real orders",
+    resetDemoLabel: "Reset demo",
     localeSwitchLabel: "Switch language",
     home: {
-      heading: "Le Belvédère Imaginaire",
       statusOpen: "Open",
       statusClosed: "Closed",
       estimatedDelayPrefix: "Estimated delay: about",
@@ -172,10 +188,17 @@ const DICTIONARIES: Record<Locale, Dictionary> = {
       heading: "Cart and time slot",
       emptyMessage: "Your demo cart is empty.",
       removeLine: "Remove",
+      decreaseQuantity: "Decrease quantity",
+      increaseQuantity: "Increase quantity",
       totalLabel: "Total",
+      deliveryFeeLabel: "Delivery fee",
+      minimumOrderPrefix: "Delivery minimum order:",
+      minimumOrderMissingPrefix: "You still need",
+      minimumOrderMissingSuffix: "more to reach this minimum.",
       slotHeading: "Time slot",
       asapLabel: "As soon as possible",
       slotUnavailable: "Full",
+      slotRequiredWarning: "Choose a time slot, or check “As soon as possible”.",
       guestHeading: "Your details (demo)",
       guestName: "Name",
       guestPhone: "Phone",
@@ -188,6 +211,8 @@ const DICTIONARIES: Record<Locale, Dictionary> = {
       notice: "This is a demo: no real payment is made, no card details are requested.",
       totalLabel: "Amount (demo)",
       confirmButton: "Confirm payment (demo)",
+      emptyCartWarning: "Your demo cart is empty: nothing to pay.",
+      backToMenu: "Back to menu",
     },
     tracking: {
       heading: "Order tracking",

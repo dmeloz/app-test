@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import { menuItems } from "../mock/menu-items";
 import { nextIncomingOrder } from "../mock/orders";
-import type { BoardOrderStatus, MockMenuItem, MockOrder } from "../mock/types";
+import type { BoardOrderStatus, LocalizedText, MockMenuItem, MockOrder } from "../mock/types";
 
-const STORAGE_KEY = "demo-backoffice-state-v1";
+export const STORAGE_KEY = "demo-backoffice-state-v1";
 
 interface BoardState {
   readonly orders: readonly MockOrder[];
@@ -21,6 +21,109 @@ const initialState: BoardState = {
   lastArrivalId: null,
 };
 
+// M3 (audit-1.md) : même limite que `apps/storefront/src/state/cart-store.tsx` — un état de mauvaise
+// forme (schéma changé entre deux déploiements, écriture manuelle dans les devtools) ne doit jamais
+// faire planter le rendu (« x.orders.filter is not a function » constaté par l'audit) : il est
+// rejeté ici, avant tout usage, et la clé corrompue est purgée par `loadStateFromStorage` ci-dessous.
+function isValidLocalizedText(value: unknown): value is LocalizedText {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const text = value as Record<string, unknown>;
+  return typeof text.fr === "string" && typeof text.en === "string";
+}
+
+function isValidOrderLine(value: unknown): boolean {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const line = value as Record<string, unknown>;
+  return (
+    isValidLocalizedText(line.name) &&
+    typeof line.quantity === "number" &&
+    Number.isInteger(line.quantity) &&
+    line.quantity > 0 &&
+    Array.isArray(line.options) &&
+    line.options.every(isValidLocalizedText)
+  );
+}
+
+const VALID_BOARD_STATUSES: readonly BoardOrderStatus[] = ["new", "preparing", "ready", "refused"];
+
+function isValidOrder(value: unknown): value is MockOrder {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const order = value as Record<string, unknown>;
+  return (
+    typeof order.id === "string" &&
+    typeof order.number === "string" &&
+    isValidLocalizedText(order.slotLabel) &&
+    Array.isArray(order.lines) &&
+    order.lines.every(isValidOrderLine) &&
+    (order.note === undefined || isValidLocalizedText(order.note)) &&
+    typeof order.status === "string" &&
+    (VALID_BOARD_STATUSES as readonly string[]).includes(order.status) &&
+    (order.refusalReason === undefined || typeof order.refusalReason === "string")
+  );
+}
+
+function isValidMenuItem(value: unknown): value is MockMenuItem {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const item = value as Record<string, unknown>;
+  return (
+    typeof item.id === "string" &&
+    isValidLocalizedText(item.name) &&
+    typeof item.soldOut === "boolean"
+  );
+}
+
+function isValidBoardState(value: unknown): value is BoardState {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const state = value as Record<string, unknown>;
+  return (
+    Array.isArray(state.orders) &&
+    state.orders.every(isValidOrder) &&
+    typeof state.paused === "boolean" &&
+    Array.isArray(state.menuItems) &&
+    state.menuItems.every(isValidMenuItem) &&
+    (state.lastArrivalId === null || typeof state.lastArrivalId === "string")
+  );
+}
+
+interface StorageLike {
+  getItem(key: string): string | null;
+  removeItem(key: string): void;
+}
+
+/**
+ * Lit et valide l'état stocké (testable sans navigateur : le stockage est injecté). Si la valeur est
+ * absente, non-JSON ou de forme inattendue, l'état initial est retourné **et la clé corrompue est
+ * purgée** (M3, audit-1.md).
+ */
+export function loadStateFromStorage(storage: StorageLike): BoardState {
+  const raw = storage.getItem(STORAGE_KEY);
+  if (raw === null) {
+    return initialState;
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    storage.removeItem(STORAGE_KEY);
+    return initialState;
+  }
+  if (!isValidBoardState(parsed)) {
+    storage.removeItem(STORAGE_KEY);
+    return initialState;
+  }
+  return parsed;
+}
+
 // État de démonstration uniquement (spec P01 §2 : en mémoire + `localStorage`, aucun appel réseau,
 // aucune base) — même schéma que `apps/storefront/src/state/cart-store.tsx` (singleton du module via
 // `useSyncExternalStore`, jamais un `setState` React appelé depuis un effet).
@@ -29,12 +132,7 @@ function loadState(): BoardState {
     if (typeof window === "undefined") {
       return initialState;
     }
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      return initialState;
-    }
-    const parsed = JSON.parse(raw) as Partial<BoardState>;
-    return { ...initialState, ...parsed, menuItems: parsed.menuItems ?? menuItems };
+    return loadStateFromStorage(window.localStorage);
   } catch {
     return initialState;
   }
@@ -102,6 +200,8 @@ export interface BoardApi extends BoardState {
   markReady(id: string): void;
   togglePause(): void;
   toggleSoldOut(itemId: string): void;
+  /** M3 (audit-1.md) : bouton visible « Réinitialiser la démo ». */
+  resetDemo(): void;
 }
 
 /**
@@ -157,6 +257,9 @@ export function useServiceBoard(): BoardApi {
       ),
     }));
   }, []);
+  const resetDemo = useCallback(() => {
+    mutate(() => initialState);
+  }, []);
 
   return {
     ...state,
@@ -166,5 +269,6 @@ export function useServiceBoard(): BoardApi {
     markReady,
     togglePause,
     toggleSoldOut,
+    resetDemo,
   };
 }

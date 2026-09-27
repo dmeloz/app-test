@@ -26,6 +26,7 @@ interface BoardDictionary {
   readonly pausedNotice: string;
   readonly simulateButton: string;
   readonly emptyColumnMessage: string;
+  readonly arrivalHighlightLabel: string;
   readonly statusNew: string;
   readonly statusPreparing: string;
   readonly statusReady: string;
@@ -64,6 +65,8 @@ interface OrderColumnCardProps {
   readonly onAccept?: () => void;
   readonly onReady?: () => void;
   readonly onRefuse: (reason: string) => void;
+  /** L10 (audit-1.md) : surbrillance visuelle de la dernière commande arrivée. */
+  readonly highlighted: boolean;
 }
 
 function OrderColumnCard({
@@ -73,6 +76,7 @@ function OrderColumnCard({
   onAccept,
   onReady,
   onRefuse,
+  highlighted,
 }: OrderColumnCardProps): ReactElement {
   const [refusing, setRefusing] = useState(false);
   const [reason, setReason] = useState("");
@@ -97,6 +101,8 @@ function OrderColumnCard({
         onReady={onReady}
         refuseLabel={!refusing && order.status !== "ready" ? dictionary.refuseLabel : undefined}
         onRefuse={!refusing && order.status !== "ready" ? () => setRefusing(true) : undefined}
+        highlighted={highlighted}
+        highlightLabel={dictionary.arrivalHighlightLabel}
       />
       {refusing ? (
         <div className="ui-card ui-stack ui-stack--sm">
@@ -180,6 +186,7 @@ export function ServiceBoardScreen({ locale, dictionary }: ServiceBoardScreenPro
                 dictionary={dictionary}
                 onAccept={() => board.acceptOrder(order.id)}
                 onRefuse={(reason) => board.refuseOrder(order.id, reason)}
+                highlighted={order.id === board.lastArrivalId}
               />
             ))}
           </section>
@@ -199,6 +206,7 @@ export function ServiceBoardScreen({ locale, dictionary }: ServiceBoardScreenPro
                 dictionary={dictionary}
                 onReady={() => board.markReady(order.id)}
                 onRefuse={(reason) => board.refuseOrder(order.id, reason)}
+                highlighted={order.id === board.lastArrivalId}
               />
             ))}
           </section>
@@ -217,6 +225,7 @@ export function ServiceBoardScreen({ locale, dictionary }: ServiceBoardScreenPro
                 locale={locale}
                 dictionary={dictionary}
                 onRefuse={(reason) => board.refuseOrder(order.id, reason)}
+                highlighted={order.id === board.lastArrivalId}
               />
             ))}
           </section>

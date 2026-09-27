@@ -1,7 +1,14 @@
 // Calculs d'affichage de la maquette (jamais un total facturé réel — règle n°1 du CLAUDE.md : aucun
 // montant calculé par le navigateur n'est jamais accepté comme faisant foi ; ici, il n'existe de
 // toute façon aucun serveur/aucune commande réelle, spec P01 §2 « Exclu »). Pur, testable sans React.
-import type { CartLine, CartLineSelection, MockCategory, MockProduct } from "../mock/types";
+import { DELIVERY_FEE_CENTS, MINIMUM_ORDER_FOR_DELIVERY_CENTS } from "../mock/delivery";
+import type {
+  CartLine,
+  CartLineSelection,
+  Channel,
+  MockCategory,
+  MockProduct,
+} from "../mock/types";
 
 export function allProducts(menu: readonly MockCategory[]): readonly MockProduct[] {
   return menu.flatMap((category) => category.products);
@@ -55,6 +62,32 @@ export function cartTotalCents(menu: readonly MockCategory[], lines: readonly Ca
 
 export function cartItemCount(lines: readonly CartLine[]): number {
   return lines.reduce((sum, line) => sum + line.quantity, 0);
+}
+
+// M2 (audit-1.md) : frais de livraison fictifs, canal livraison uniquement — jamais appliqués au
+// retrait ni tant qu'aucun canal n'est choisi.
+export function deliveryFeeCents(channel: Channel | null): number {
+  return channel === "delivery" ? DELIVERY_FEE_CENTS : 0;
+}
+
+/** Sous-total (hors frais de livraison) + frais de livraison éventuels : montant total affiché. */
+export function orderTotalCents(
+  menu: readonly MockCategory[],
+  lines: readonly CartLine[],
+  channel: Channel | null,
+): number {
+  return cartTotalCents(menu, lines) + deliveryFeeCents(channel);
+}
+
+/**
+ * Le sous-total (hors frais de livraison) est-il sous le minimum de commande pour la livraison ?
+ * Toujours `false` au retrait, ou tant que le panier est vide (le message « minimum non atteint »
+ * ne doit pas s'afficher avant même d'avoir choisi un produit).
+ */
+export function isBelowDeliveryMinimum(subtotalCents: number, channel: Channel | null): boolean {
+  return (
+    channel === "delivery" && subtotalCents > 0 && subtotalCents < MINIMUM_ORDER_FOR_DELIVERY_CENTS
+  );
 }
 
 /** Toutes les sélections obligatoires (min ≥ 1) sont-elles valides pour ce produit ? */

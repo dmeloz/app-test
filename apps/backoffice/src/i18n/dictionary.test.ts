@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { getDictionary, isSupportedLocale, SUPPORTED_LOCALES } from "./dictionary";
 
+// L8 (audit-1.md) : le nom du restaurant fictif n'est plus dans le dictionnaire (voir
+// `mock/restaurant.ts`) — seul le préfixe traduit du titre (« Back-office » / « Back office ») l'est.
 describe("dictionary (backoffice)", () => {
-  it("fournit le titre du site en FR et EN", () => {
-    expect(getDictionary("fr").siteTitle).toBe("Back-office — Le Belvédère Imaginaire");
-    expect(getDictionary("en").siteTitle).toBe("Back office — Le Belvédère Imaginaire");
+  it("fournit le préfixe du titre en FR et EN", () => {
+    expect(getDictionary("fr").titlePrefix).toBe("Back-office");
+    expect(getDictionary("en").titlePrefix).toBe("Back office");
   });
 
   it("fournit le texte du bandeau de démonstration en FR et EN (AC-P01-07)", () => {

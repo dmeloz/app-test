@@ -7,7 +7,6 @@ import type { Channel, MockRestaurant } from "../mock/types";
 import { useCartStore } from "../state/cart-store";
 
 interface HomeDictionary {
-  readonly heading: string;
   readonly statusOpen: string;
   readonly statusClosed: string;
   readonly estimatedDelayPrefix: string;
@@ -46,7 +45,9 @@ export function HomeScreen({
   return (
     <main className="ui-container">
       <div className="ui-stack">
-        <h1 className="ui-heading-xl">{dictionary.heading}</h1>
+        {/* L8 (audit-1.md) : le nom affiché vient de la donnée « tenant » (`restaurant.name`), pas
+            d'un dictionnaire i18n — un nom de restaurant n'est pas un texte traduisible. */}
+        <h1 className="ui-heading-xl">{restaurant.name}</h1>
         <p className="ui-text-muted">{tagline}</p>
         <p>
           <span

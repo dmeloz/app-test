@@ -3,7 +3,9 @@ import { connection } from "next/server";
 import { headers } from "next/headers";
 import type { ReactNode } from "react";
 import { DemoBanner, ThemeStyle } from "@app/ui";
+import { ResetDemoButton } from "../../components/ResetDemoButton";
 import { getDictionary, isSupportedLocale, SUPPORTED_LOCALES } from "../../i18n/dictionary";
+import { RESTAURANT_NAME } from "../../mock/restaurant";
 
 export function generateStaticParams(): Array<{ locale: string }> {
   return SUPPORTED_LOCALES.map((locale) => ({ locale }));
@@ -21,12 +23,15 @@ interface LocaleLayoutParams {
 // M1 (audit-2.md) : ce fichier n'appelle plus `notFound()` lui-même (ni ici, ni dans le composant de
 // layout ci-dessous) — un segment invalide reste de la responsabilité de `page.tsx` (seule source de
 // vérité désormais). Voir `app/not-found.tsx`.
+// L8 (audit-1.md) : le titre est composé à partir du préfixe traduit (`titlePrefix`) et du nom du
+// restaurant fictif (`RESTAURANT_NAME`, donnée « tenant ») — plus jamais dupliqué en dur dans le
+// dictionnaire i18n.
 export async function generateMetadata({ params }: LocaleLayoutParams): Promise<Metadata> {
   const { locale } = await params;
   if (!isSupportedLocale(locale)) {
     return { title: "404 — Page introuvable / Page not found" };
   }
-  return { title: getDictionary(locale).siteTitle };
+  return { title: `${getDictionary(locale).titlePrefix} — ${RESTAURANT_NAME}` };
 }
 
 interface LocaleLayoutProps extends LocaleLayoutParams {
@@ -61,6 +66,14 @@ export default async function LocaleLayout({
       </head>
       <body>
         <DemoBanner text={bannerText} />
+        {/* M3 (audit-1.md) : bouton visible « Réinitialiser la démo » sur chaque page. */}
+        <ResetDemoButton
+          label={
+            isSupportedLocale(locale)
+              ? getDictionary(locale).resetDemoLabel
+              : getDictionary("fr").resetDemoLabel
+          }
+        />
         {children}
       </body>
     </html>

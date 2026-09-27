@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
-import type { CartLine, Channel, GuestInfo, OrderStatus } from "../mock/types";
+import type { CartLine, CartLineSelection, Channel, GuestInfo, OrderStatus } from "../mock/types";
 
-const STORAGE_KEY = "demo-storefront-state-v1";
+export const STORAGE_KEY = "demo-storefront-state-v1";
 
 export interface DemoOrder {
   readonly id: string;
@@ -29,6 +29,118 @@ const initialState: StoreState = {
   order: null,
 };
 
+// M3 (audit-1.md) : forme minimale de l'état attendu — un état de mauvaise forme (schéma changé
+// entre deux déploiements, écriture manuelle dans les devtools, quota partiellement rempli) ne doit
+// jamais faire planter le rendu (« t.reduce is not a function » constaté par l'audit) : il est
+// rejeté ici, avant tout usage, et la clé corrompue est purgée par `loadStateFromStorage` ci-dessous.
+function isValidChannel(value: unknown): value is Channel | null {
+  return value === null || value === "pickup" || value === "delivery";
+}
+
+function isValidCartLineSelection(value: unknown): value is CartLineSelection {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const selection = value as Record<string, unknown>;
+  return (
+    typeof selection.groupId === "string" &&
+    Array.isArray(selection.choiceIds) &&
+    selection.choiceIds.every((choiceId) => typeof choiceId === "string")
+  );
+}
+
+function isValidCartLine(value: unknown): value is CartLine {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const line = value as Record<string, unknown>;
+  return (
+    typeof line.lineId === "string" &&
+    typeof line.productId === "string" &&
+    typeof line.quantity === "number" &&
+    Number.isInteger(line.quantity) &&
+    line.quantity > 0 &&
+    Array.isArray(line.selections) &&
+    line.selections.every(isValidCartLineSelection)
+  );
+}
+
+function isValidGuest(value: unknown): value is GuestInfo {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const guest = value as Record<string, unknown>;
+  return (
+    typeof guest.name === "string" &&
+    typeof guest.phone === "string" &&
+    typeof guest.note === "string"
+  );
+}
+
+const VALID_ORDER_STATUSES: readonly OrderStatus[] = ["accepted", "preparing", "ready"];
+
+function isValidOrder(value: unknown): value is DemoOrder | null {
+  if (value === null) {
+    return true;
+  }
+  if (typeof value !== "object") {
+    return false;
+  }
+  const order = value as Record<string, unknown>;
+  return (
+    typeof order.id === "string" &&
+    typeof order.status === "string" &&
+    (VALID_ORDER_STATUSES as readonly string[]).includes(order.status) &&
+    typeof order.createdAt === "string"
+  );
+}
+
+function isValidState(value: unknown): value is StoreState {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const state = value as Record<string, unknown>;
+  return (
+    isValidChannel(state.channel) &&
+    Array.isArray(state.lines) &&
+    state.lines.every(isValidCartLine) &&
+    (state.slotId === null || typeof state.slotId === "string") &&
+    typeof state.asap === "boolean" &&
+    isValidGuest(state.guest) &&
+    isValidOrder(state.order)
+  );
+}
+
+interface StorageLike {
+  getItem(key: string): string | null;
+  removeItem(key: string): void;
+}
+
+/**
+ * Lit et valide l'état stocké (testable sans navigateur : le stockage est injecté). Si la valeur est
+ * absente, non-JSON ou de forme inattendue, l'état initial est retourné **et la clé corrompue est
+ * purgée** (M3, audit-1.md) — la démonstration repart sur un état propre au lieu de replanter à
+ * chaque chargement.
+ */
+export function loadStateFromStorage(storage: StorageLike): StoreState {
+  const raw = storage.getItem(STORAGE_KEY);
+  if (raw === null) {
+    return initialState;
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    storage.removeItem(STORAGE_KEY);
+    return initialState;
+  }
+  if (!isValidState(parsed)) {
+    storage.removeItem(STORAGE_KEY);
+    return initialState;
+  }
+  return parsed;
+}
+
 // État de démonstration uniquement (spec P01 §2 : en mémoire + `localStorage`, aucun appel réseau,
 // aucune base). Accès à `localStorage` protégé par try/catch : la démo doit continuer à fonctionner
 // (en mémoire) même si le stockage est indisponible (navigation privée, quota dépassé).
@@ -37,16 +149,7 @@ function loadState(): StoreState {
     if (typeof window === "undefined") {
       return initialState;
     }
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      return initialState;
-    }
-    const parsed = JSON.parse(raw) as Partial<StoreState>;
-    return {
-      ...initialState,
-      ...parsed,
-      guest: { ...initialState.guest, ...parsed.guest },
-    };
+    return loadStateFromStorage(window.localStorage);
   } catch {
     return initialState;
   }
@@ -117,6 +220,8 @@ export interface StoreApi extends StoreState {
   setChannel(channel: Channel): void;
   addLine(line: CartLine): void;
   removeLine(lineId: string): void;
+  /** L10 (audit-1.md) : lignes modifiables — quantité ≤ 0 retire la ligne (comme `removeLine`). */
+  updateLineQuantity(lineId: string, quantity: number): void;
   setSlot(slotId: string | null): void;
   setAsap(asap: boolean): void;
   setGuest(guest: GuestInfo): void;
@@ -145,6 +250,14 @@ export function useCartStore(): StoreApi {
       lines: current.lines.filter((line) => line.lineId !== lineId),
     }));
   }, []);
+  const updateLineQuantity = useCallback((lineId: string, quantity: number) => {
+    mutate((current) => ({
+      ...current,
+      lines: current.lines
+        .map((line) => (line.lineId === lineId ? { ...line, quantity } : line))
+        .filter((line) => line.quantity > 0),
+    }));
+  }, []);
   const setSlot = useCallback((slotId: string | null) => {
     mutate((current) => ({ ...current, slotId, asap: slotId === null ? current.asap : false }));
   }, []);
@@ -154,9 +267,15 @@ export function useCartStore(): StoreApi {
   const setGuest = useCallback((guest: GuestInfo) => {
     mutate((current) => ({ ...current, guest }));
   }, []);
+  // L10 (audit-1.md) : le panier et les coordonnées invité (nom, téléphone, note) sont purgés une
+  // fois la commande de démonstration passée — ni conservés indéfiniment dans `localStorage`
+  // (`.claude/rules/security.md` : minimisation des données), ni source d'une seconde commande à
+  // 0 CHF si l'utilisateur revient en arrière sur `/paiement`.
   const confirmPayment = useCallback(() => {
     mutate((current) => ({
       ...current,
+      lines: [],
+      guest: initialState.guest,
       order: {
         id: `DEMO-${Date.now().toString(36).toUpperCase()}`,
         status: "accepted",
@@ -184,6 +303,7 @@ export function useCartStore(): StoreApi {
     setChannel,
     addLine,
     removeLine,
+    updateLineQuantity,
     setSlot,
     setAsap,
     setGuest,
