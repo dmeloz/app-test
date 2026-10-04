@@ -17,7 +17,7 @@ from .controles import (
 )
 from .dates_fr import MOIS, jj_mm_aaaa, nom_dossier_mois
 from .fichiers import (
-    DOSSIER_AGI, DOSSIER_FICHES, copier_sans_ecraser, dossier_mensuel, nom_agi, nom_fiche,
+    DOSSIER_AGI, DOSSIER_FICHES, dossier_mensuel, nom_agi, nom_fiche,
     suffixe_periode, sauvegarder, version_disponible,
 )
 from .journal import Rapport, journaliser
@@ -155,26 +155,19 @@ def generer(
     collab = collaborateur_depuis(analyse.champs, existant.ligne if existant else None)
     fonction = champ["fonction"].valeur
 
-    # Plan d'écriture établi sur l'original (identique à la future copie), avant toute copie.
+    # Plan d'écriture : seules des cellules de saisie du fichier Excel sont remplies.
     try:
         ecritures = planifier(analyse.classeur, collab, existant, numero, jour, fonction)
     except PlanImpossible as exc:
         raise TraitementInterrompu(str(exc)) from exc
     a_confirmer = [e.description() for e in ecritures if e.a_confirmer]
-    ecritures_annuel = [e for e in ecritures if e.feuille != analyse.classeur.feuilles.fiche]
-    if reglages.maj_classeur_annuel and ecritures_annuel:
-        a_confirmer.append(
-            f"→ Ces données seront aussi ajoutées au classeur annuel « {analyse.classeur.chemin.name} » "
-            "(sauvegardé avant toute modification)."
-        )
-    if a_confirmer and not confirmer("Modifications des fichiers Excel", a_confirmer):
+    if a_confirmer and not confirmer(f"Remplir « {analyse.classeur.chemin.name} »", a_confirmer):
         raise TraitementInterrompu("Génération annulée : modifications non confirmées.")
 
     periode = suffixe_periode(jour, _plusieurs_seances(analyse, jour))
     dossier_fiches = dossier_mensuel(racine, DOSSIER_FICHES, jour)
     dossier_agi = dossier_mensuel(racine, DOSSIER_AGI, jour)
     cibles = {
-        "excel": dossier_fiches / nom_fiche(collab.nom, collab.prenom, periode, "xlsx"),
         "pdf": dossier_fiches / nom_fiche(collab.nom, collab.prenom, periode, "pdf"),
         "agi": dossier_agi / nom_agi(collab.nom, collab.prenom, periode),
     }
@@ -184,31 +177,35 @@ def generer(
             raise TraitementInterrompu(f"Génération annulée : {existe.name} existe déjà.")
         cibles = {k: version_disponible(p) for k, p in cibles.items()}
 
+    if excel_mac.classeur_ouvert(analyse.classeur.chemin):
+        raise TraitementInterrompu(
+            f"Le fichier « {analyse.classeur.chemin.name} » est ouvert dans Excel : fermez-le, puis cliquez à "
+            "nouveau sur Générer."
+        )
     moment = datetime.now()
     modele_agi = Path(reglages.modele_agi) if reglages.modele_agi else None
     if modele_agi is None or not modele_agi.exists():
         modele_agi = agi_formulaire.MODELE_VIERGE  # formulaire officiel vierge fourni avec l'application
-    sauvegarde = sauvegarder(racine, [analyse.classeur.chemin, modele_agi, analyse.fiche.source], moment)
+    sauvegarde = sauvegarder(racine, [analyse.classeur.chemin, analyse.fiche.source], moment)
+    copie_sauvegarde = sauvegarde / analyse.classeur.chemin.name
     rapport = Rapport(mois=nom_dossier_mois(jour), collaborateur=collab.cle, documents_analyses=analyse.documents,
                       sauvegarde=str(sauvegarde))
     _remplir_rapport_champs(rapport, analyse.champs)
     resultat = Resultat(rapport=rapport, destinataire=collab.email, prenom=collab.prenom, date_seance=jour)
     journaliser(racine, f"Début du traitement {collab.cle} – séance du {jj_mm_aaaa(jour)} – sauvegarde {sauvegarde}")
 
-    if reglages.maj_classeur_annuel and excel_mac.classeur_ouvert(analyse.classeur.chemin):
-        raise TraitementInterrompu(
-            f"Le classeur « {analyse.classeur.chemin.name} » est ouvert dans Excel : fermez-le, puis cliquez à "
-            "nouveau sur Générer."
-        )
     try:
-        copier_sans_ecraser(analyse.classeur.chemin, cibles["excel"])
-        resultat.excel = cibles["excel"]
-        rapport.fichier_excel = str(cibles["excel"])
+        # Le fichier Excel lui-même est rempli (sauvegardé juste avant), Excel calcule et exporte le PDF.
+        resultat.excel = analyse.classeur.chemin
+        rapport.fichier_excel = str(analyse.classeur.chemin)
         rapport.modifications_excel = [e.description() for e in ecritures]
-        lu = executer_excel(cibles["excel"], ecritures, analyse.classeur.feuilles.fiche, cibles["pdf"])
+        lu = executer_excel(analyse.classeur.chemin, ecritures, analyse.classeur.feuilles.fiche, cibles["pdf"])
         rapport.resultats_excel = {k: _affichage(k, v) for k, v in lu.valeurs.items()}
         resultat.controles = controler_fiche(lu, collab, jour, cibles["pdf"])
-        resultat.controles += integrite.verifier(analyse.classeur.chemin, cibles["excel"], ecritures)
+        for c in integrite.verifier(copie_sauvegarde, analyse.classeur.chemin, ecritures):
+            if c.statut is Statut.ERREUR:
+                c.commentaire += f" Version d'avant le traitement : {copie_sauvegarde}"
+            resultat.controles.append(c)
         for c in resultat.controles:
             (rapport.erreurs if c.statut is Statut.ERREUR else rapport.donnees_a_verifier
              if c.statut is Statut.A_VERIFIER else rapport.donnees_extraites).append(_ligne(c))
@@ -217,13 +214,8 @@ def generer(
             rapport.pdf_fiche_salaire = str(cibles["pdf"])
         if any(c.statut is Statut.ERREUR for c in resultat.controles):
             raise TraitementInterrompu(
-                "La fiche de salaire ou le contrôle d'intégrité présente une erreur : AGI non généré (voir le rapport)."
-            )
-
-        if reglages.maj_classeur_annuel and ecritures_annuel:
-            resultat.controles += mettre_a_jour_classeur_annuel(
-                analyse.classeur.chemin, sauvegarde / analyse.classeur.chemin.name, ecritures_annuel,
-                analyse.classeur.feuilles.fiche, executer_excel, rapport,
+                "La fiche de salaire ou le contrôle du fichier Excel présente une erreur : AGI non généré. "
+                f"La version d'avant le traitement est dans {sauvegarde} (voir le rapport)."
             )
 
         if modele_agi and modele_agi.exists():
@@ -240,8 +232,6 @@ def generer(
             for c in champs_agi:
                 (rapport.donnees_a_verifier if c.statut is not Statut.VALIDE else rapport.donnees_extraites).append(_ligne(c))
             resultat.controles += champs_agi
-        else:
-            rapport.erreurs.append({"Champ": "Modèle AGI", "Valeur": "", "Commentaire": "Modèle AGI non sélectionné."})
         journaliser(racine, f"Fin du traitement {collab.cle} : {cibles['pdf'].name}, {cibles['agi'].name}")
     except Exception as exc:
         journaliser(racine, f"Échec du traitement {collab.cle} : {exc}")
@@ -250,26 +240,6 @@ def generer(
         raise
     resultat.chemin_rapport = rapport.enregistrer(racine, f"Rapport_{collab.nom}_{collab.prenom}_{periode}")
     return resultat
-
-
-def mettre_a_jour_classeur_annuel(
-    chemin: Path, sauvegarde: Path, ecritures: list[Ecriture], feuille_fiche: str,
-    executer_excel, rapport: Rapport,
-) -> list[Champ]:
-    """Ajoute collaborateur, date et prestation au classeur annuel, puis contrôle son intégrité."""
-    executer_excel(chemin, ecritures, feuille_fiche, None)
-    rapport.modifications_classeur_annuel = [e.description() for e in ecritures]
-    controles = integrite.verifier(sauvegarde, chemin, ecritures)
-    for c in controles:
-        c.cle = f"annuel_{c.cle}"
-        c.libelle = f"Classeur annuel : {c.libelle.lower()}"
-        if c.statut is Statut.ERREUR:
-            c.commentaire += f" Restaurer si besoin la sauvegarde : {sauvegarde}"
-    if any(c.statut is Statut.ERREUR for c in controles):
-        raise TraitementInterrompu(
-            f"Le contrôle du classeur annuel a échoué : restaurer la sauvegarde {sauvegarde} (voir le rapport)."
-        )
-    return controles
 
 
 def donnees_formulaire_agi(lu: ResultatExcel, collab: Collaborateur, jour: date, reglages: Reglages,

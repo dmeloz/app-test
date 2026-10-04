@@ -345,9 +345,8 @@ class Fenetre(QMainWindow):
         boite = QMessageBox(self)
         boite.setWindowTitle(titre)
         boite.setIcon(QMessageBox.Question)
-        annuel = " et dans le classeur annuel (sauvegardé avant)" if self.r.maj_classeur_annuel else \
-            " uniquement (le classeur annuel n'est pas modifié)"
-        boite.setText(f"Les données suivantes seront écrites dans la copie de travail{annuel}. "
+        boite.setText("Les données suivantes seront écrites dans votre fichier Excel "
+                      "(une sauvegarde est faite juste avant). "
                       "Aucune formule, ligne, onglet ni taux n'est modifié. Confirmer ?")
         boite.setDetailedText("\n".join(lignes))
         boite.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
@@ -374,7 +373,7 @@ class Fenetre(QMainWindow):
         for c in self.resultat.controles:
             if c.statut is not Statut.VALIDE:
                 self.log(f"  {c.statut.value} — {c.libelle} : {c.commentaire}")
-        self.log(f"✔ Fiche Excel : {self.resultat.excel}")
+        self.log(f"✔ Fichier Excel rempli : {self.resultat.excel}")
         self.log(f"✔ PDF fiche de salaire : {self.resultat.pdf_fiche}")
         self.log(f"✔ AGI : {self.resultat.pdf_agi}")
         self.log(f"✔ Rapport : {self.resultat.chemin_rapport}")

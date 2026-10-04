@@ -176,11 +176,11 @@ Voir décision D3.
 | D1 | Classeurs en année civile | **Validé par Sarah** : saison octobre → juin classée par mois ; un classeur Excel par année civile (2026, 2027). L'application choisit le classeur selon `Configuration!B5` et l'année de la séance. |
 | D2 | Fiche par séance / nom par mois | **Validé par Sarah** : une fiche par séance ; suffixe `YYYY-MM`, ou `YYYY-MM-JJ` si le club a plusieurs séances dans le mois. |
 | D3 | AGI sans champs | **Précisé par Sarah** : modèle officiel pré-rempli par l'association. Zones repérées par les textes du modèle ; les consignes (calque rose/rouge ajouté par l'association) sont retirées là où une valeur est écrite ; les réponses pré-cochées sont conservées. Aperçu fictif à contrôler une fois. |
-| D4 | Date de séance absente de Configuration | Inscrite dans la copie de travail (B30:B32 pour les séances 1-3, B24:B29 pour 4-9), après confirmation. Date différente déjà présente = Erreur. |
-| D5 | Nouveau collaborateur | Ajouté dans la 1re ligne libre (6 à 40) de la copie, colonne C (formule) jamais écrite, après confirmation. |
+| D4 | Date de séance absente de Configuration | Inscrite dans le fichier Excel (B30:B32 pour les séances 1-3, B24:B29 pour 4-9), après confirmation. Date différente déjà présente = Erreur. |
+| D5 | Nouveau collaborateur | Ajouté dans la 1re ligne libre (6 à 40) du fichier Excel, colonne C (formule) jamais écrite, après confirmation. |
 | D6 | E-mail | Brouillon Outlook Web dans Chrome + pièces jointes montrées dans le Finder. |
 | D7 | Excel installé | **Confirmé par Sarah.** |
-| D8 | Classeur annuel | **Validé par Sarah** : le classeur annuel cumule aussi les prestations (déclaration AVS, certificats). Mêmes écritures que la copie (sauf la sélection de la fiche), après sauvegarde horodatée et confirmation ; relu avant chaque génération (pas de doublon) ; intégrité contrôlée contre la sauvegarde. Option désactivable. |
+| D8 | Fichier Excel | **Décision de Sarah : remplir directement son fichier Excel, sans en créer d'autre.** Sauvegarde horodatée avant chaque génération ; cellules à remplir confirmées ; fichier relu avant chaque génération (pas de doublon) ; intégrité contrôlée contre la sauvegarde ; fichier ouvert dans Excel détecté. Seuls les PDF (fiche de salaire, AGI) sont créés. |
 | D11 | Simplification | Formulaire officiel vierge fourni avec l'application (créé à partir de l'AGI de l'association, entièrement vidé) ; signature reprise d'un AGI déjà signé ; téléphone repris de la ligne « Comptabilité » de la fiche de présence ; classeur ouvert dans Excel détecté. Point 8 : salaire sur la ligne « par mois » comme sur l'AGI rempli (la consigne de l'association indique la ligne « par jour ») — **validé par Sarah : « par mois »**. |
 | D10 | AGI remplissable | **Exemple fourni par Sarah** (AGI rempli par l'association) : formulaire officiel 716.105 f avec 105 champs. L'application remplit les champs et applique les conventions de l'exemple. |
 | D9 | Indépendant·e | Le classeur ne produit pas de fiche de salaire pour un statut « Indépendant » (contrôle D8) : statut Erreur, génération bloquée. |
@@ -220,7 +220,7 @@ déverrouillées [Fait vérifié]. La protection n'est jamais retirée.
   liaisons externes.
 - AGI : `pypdf` (retrait des consignes) et `reportlab` (valeurs, cases, signature).
 - Après chaque génération, **contrôle d'intégrité** : onglets, formules (1 495 dans le classeur réel), listes
-  déroulantes et mises en forme conditionnelles comparés entre original et copie ; seules les cellules
+  déroulantes et mises en forme conditionnelles comparés entre la sauvegarde et le fichier rempli ; seules les cellules
   prévues peuvent différer.
 
 ## 7. Stratégie de test (mise en œuvre)

@@ -2,7 +2,8 @@
 
 Application macOS locale, en français, qui prépare pour La Lanterne Magique :
 
-- la fiche de salaire (copie Excel + PDF) de chaque collaborateur·trice salarié·e, par séance ;
+- le remplissage de **votre fichier Excel** (collaborateur, date de séance, prestation, fiche de salaire) et le PDF
+  de la fiche de salaire, pour chaque collaborateur·trice salarié·e et chaque séance ;
 - l'attestation de gain intermédiaire (AGI) remplie et signée ;
 - un brouillon d'e-mail Outlook (jamais envoyé), un rapport et une sauvegarde.
 
@@ -42,7 +43,7 @@ Installer Python 3.11+, double-cliquer sur `Installer.command`, puis lancer avec
 C'est tout. Le reste est automatique :
 - **Formulaire AGI** : le formulaire officiel vierge est fourni avec l'application.
 - **Téléphone de l'AGI** : repris de la ligne « Comptabilité » de la fiche de présence.
-- **Classeur ouvert** : si le classeur annuel est ouvert dans Excel, l'application le signale et vous demande
+- **Fichier ouvert** : si votre fichier Excel est ouvert dans Excel, l'application le signale et vous demande
   de le fermer.
 - **Activité** : « Animateur·trice » par défaut, modifiable dans le tableau (« Animatrice »…).
 
@@ -72,11 +73,12 @@ C'est tout. Le reste est automatique :
 
    **Générer reste désactivé tant qu'une donnée obligatoire est en Erreur.**
 5. **Générer** :
-   1. Sauvegarde horodatée dans `Sauvegardes/`.
-   2. Liste des cellules qui seront écrites (collaborateur, date de séance, prestation), à **confirmer**.
-   3. Copie de travail `Fiche_salaire_NOM_Prenom_YYYY-MM.xlsx`.
-   4. Excel écrit uniquement les cellules de saisie, **calcule lui-même**, enregistre et exporte la zone
-      d'impression de « 4. Fiches de salaire » en PDF.
+   1. Sauvegarde horodatée de votre fichier Excel dans `Sauvegardes/` (version d'avant, en cas de besoin).
+   2. Liste des cellules qui seront remplies (collaborateur, date de séance, prestation), à **confirmer**.
+   3. **Votre fichier Excel est rempli directement** : aucun autre fichier Excel n'est créé. Excel écrit
+      uniquement les cellules de saisie, **calcule lui-même**, enregistre et exporte la zone d'impression de
+      « 4. Fiches de salaire » en PDF. Le fichier est relu juste avant : une même prestation n'est jamais
+      ajoutée deux fois.
    5. Contrôles :
       - la cellule D8 est vide ;
       - le nom et la date de séance figurent sur la fiche ;
@@ -84,20 +86,16 @@ C'est tout. Le reste est automatique :
       - le PDF fait une page ;
       - les onglets, les formules, les listes déroulantes et les mises en forme conditionnelles sont tous
         conservés ;
-      - seules les cellules prévues ont changé.
-   6. **Classeur annuel** : les mêmes données (collaborateur, date de séance, prestation) y sont ajoutées,
-      pour la déclaration AVS et les certificats de salaire. Le classeur est relu juste avant, donc une même
-      prestation n'est jamais ajoutée deux fois. Son intégrité est contrôlée par comparaison avec la sauvegarde.
-      Cette option peut être désactivée dans les réglages.
-   7. AGI remplie champ par champ, avec les montants de la fiche sans aucun recalcul et au format de
+      - seules les cellules prévues ont changé (comparaison avec la sauvegarde).
+   6. AGI remplie champ par champ, avec les montants de la fiche sans aucun recalcul et au format de
       l'association (mois en lettres, virgule décimale, « Contrat à durée déterminée d'un jour », caisse
       cantonale vaudoise…). Elle est signée et classée dans `AGI/<mois année>/`.
-   8. Rapport HTML et JSON dans `Rapports/`, et journal dans `Rapports/journal.log`.
+   7. Rapport HTML et JSON dans `Rapports/`, et journal dans `Rapports/journal.log`.
 6. **Préparer l'e-mail** : ouvre un brouillon Outlook dans Chrome et affiche les PDF dans le Finder, à glisser
    dans le message. Statut affiché : *E-mail préparé – en attente d'envoi*.
 7. **Ouvrir le dossier** / **Afficher le rapport**.
 
-Fermez le classeur annuel dans Excel avant de générer.
+Si le fichier Excel est ouvert dans Excel, l'application vous demande de le fermer avant de le remplir.
 
 Si un mois compte deux séances (par exemple novembre 2026 à Chexbres), les fichiers portent la date complète :
 `…_2026-11-07.pdf`, `…_2026-11-28.pdf`. Si un fichier existe déjà, l'application propose une version
@@ -116,7 +114,6 @@ alternative (`_v2`). Elle ne remplace ni ne supprime jamais un fichier.
   Les réponses fixes de l'association (questions 2 à 7, 11, 14 à 17) sont dans
   `ressources/agi_formulaire.json`.
 - **Aperçu avec des données fictives**.
-- **Classeur annuel** : activer ou désactiver l'ajout des prestations.
 - **E-mail** : compte Outlook.com ou Microsoft 365, objet et texte du message.
 
 ## Règles respectées

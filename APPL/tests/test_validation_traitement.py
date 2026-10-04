@@ -65,7 +65,8 @@ def test_generation_annulee_sans_confirmation(reglages, dossier_principal):
     a = analyser(reglages, presence(dossier_principal), 0)
     with pytest.raises(TraitementInterrompu, match="non confirmées"):
         generer(a, reglages, lambda *_: False, lambda *_: True, executer_excel=lambda *a: None)
-    assert not (dossier_principal / "Fiches de salaire" / "octobre 2026" / "Fiche_salaire_EXEMPLE_Camille_2026-10.xlsx").exists()
+    assert not list(dossier_principal.rglob("Fiche_salaire_*"))
+    assert not (dossier_principal / "Sauvegardes").exists()  # rien n'a été touché
 
 
 def _empreintes(dossier: Path) -> dict:
@@ -90,28 +91,27 @@ def test_generation_complete_libreoffice(reglages, dossier_principal):
         assert c[cle].statut is Statut.VALIDE, (cle, c[cle].commentaire)
     v = res.rapport.resultats_excel
     assert v["F27"] == "CHF 355.00"  # tarif Savant·e salarié lu par Excel, jamais recalculé ici
-    assert res.excel.name == "Fiche_salaire_EXEMPLE_Camille_2026-10.xlsx"
+    annuel = Path(reglages.classeurs["2026"])
+    assert res.excel == annuel  # le fichier Excel lui-même est rempli…
+    assert not list(dossier_principal.rglob("Fiche_salaire_*.xlsx"))  # …sans créer d'autre fichier Excel
+    assert res.pdf_fiche.name == "Fiche_salaire_EXEMPLE_Camille_2026-10.pdf"
     assert res.pdf_fiche.exists() and res.pdf_agi.exists() and res.chemin_rapport.exists()
     assert res.pdf_agi.parent == dossier_principal / "AGI" / "octobre 2026"
-    # Seul le classeur annuel est modifié (prestation ajoutée) ; sa sauvegarde est l'original exact.
-    annuel = Path(reglages.classeurs["2026"])
+    # Seul le fichier Excel est modifié ; sa sauvegarde est l'original exact.
     apres = _empreintes(dossier_principal)
     assert all(apres.get(p) == h for p, h in originaux.items() if p != annuel)
     assert apres[annuel] != originaux[annuel]
     sauvegarde = Path(res.rapport.sauvegarde) / annuel.name
     assert _empreintes(sauvegarde.parent)[sauvegarde] == originaux[annuel]
-    for cle in ("annuel_integrite_formules", "annuel_integrite_saisies", "annuel_integrite_onglets"):
-        assert c[cle].statut is Statut.VALIDE, (cle, c[cle].commentaire)
     relu = lire_classeur(annuel)
     assert relu.seances[30] == date(2026, 10, 3)
     assert [p.collaborateur for p in relu.prestations[30]] == ["Camille Exemple"]
 
-    # Doublon : version alternative, jamais d'écrasement.
+    # Seconde génération : PDF en version alternative (jamais d'écrasement), aucun doublon dans Excel.
     a = analyser(reglages, presence(dossier_principal), 0)
     res2 = generer(a, reglages, lambda *_: True, lambda p: True, executer_excel=substitut_excel.executer)
-    assert res2.excel.name == "Fiche_salaire_EXEMPLE_Camille_2026-10_v2.xlsx"
-    assert res.excel.exists()
-    # Pas de doublon dans le classeur annuel.
+    assert res2.pdf_fiche.name == "Fiche_salaire_EXEMPLE_Camille_2026-10_v2.pdf"
+    assert res.pdf_fiche.exists()
     assert [p.collaborateur for p in lire_classeur(annuel).prestations[30]] == ["Camille Exemple"]
 
 
@@ -124,7 +124,6 @@ def test_generation_avec_formulaire_officiel(reglages, dossier_principal):
     if not substitut_excel.disponible():
         pytest.skip("LibreOffice Calc (python3-uno) indisponible")
     reglages.modele_agi = str(creer_formulaire_agi(dossier_principal / "Modèles" / "AGI formulaire.pdf"))
-    reglages.maj_classeur_annuel = False
     originaux = _empreintes(dossier_principal)
     a = analyser(reglages, presence(dossier_principal), 0)
     activite = next(c for c in a.champs if c.cle == "activite_agi")
@@ -142,7 +141,8 @@ def test_generation_avec_formulaire_officiel(reglages, dossier_principal):
     assert v["Lieu_date"].startswith("Testville, le ")
     assert v["n_de_téléphone"] == "076 000 00 09"  # ligne « Comptabilité » de la fiche de présence
     apres = _empreintes(dossier_principal)
-    assert all(apres.get(p) == h for p, h in originaux.items())  # classeur annuel non touché (option désactivée)
+    annuel = Path(reglages.classeurs["2026"])
+    assert all(apres.get(p) == h for p, h in originaux.items() if p != annuel)
 
 
 def test_modele_integre_par_defaut(reglages, dossier_principal):
@@ -153,7 +153,6 @@ def test_modele_integre_par_defaut(reglages, dossier_principal):
     if not substitut_excel.disponible():
         pytest.skip("LibreOffice Calc (python3-uno) indisponible")
     reglages.modele_agi = ""  # aucun modèle choisi : formulaire officiel intégré
-    reglages.maj_classeur_annuel = False
     a = analyser(reglages, presence(dossier_principal), 0)
     res = generer(a, reglages, lambda *_: True, lambda p: True, executer_excel=substitut_excel.executer)
     v = valeurs_remplies(res.pdf_agi)

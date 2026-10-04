@@ -61,7 +61,7 @@ def champs_seance(
             actuelle = classeur.seances.get(ligne)
             libelle = classeur.libelles_seances.get(ligne, "")
             if actuelle is None:
-                st, com = Statut.A_VERIFIER, "Date absente : elle sera inscrite dans la copie de travail (confirmation demandée)."
+                st, com = Statut.A_VERIFIER, "Date absente : elle sera inscrite dans le fichier Excel (confirmation demandée)."
             elif actuelle == jour:
                 st, com = Statut.VALIDE, ""
             else:
@@ -117,7 +117,7 @@ def champs_collaborateur(
         lignes = ", ".join(f"{x.ligne}" for x in proches)
         st, com = Statut.A_VERIFIER, f"Aucune correspondance exacte ; correspondance approchée ligne(s) {lignes}. Indiquer la ligne ou laisser vide pour un nouveau collaborateur."
     else:
-        st, com = Statut.A_VERIFIER, "Nouveau collaborateur : il sera ajouté dans la copie de travail (confirmation demandée)."
+        st, com = Statut.A_VERIFIER, "Nouveau collaborateur : il sera ajouté dans le fichier Excel (confirmation demandée)."
     c.append(Champ("correspondance", "Correspondance dans Collaborateurs", str(choisi.ligne) if choisi else "",
                    S_CLASSEUR, st, com, True))
 
@@ -145,7 +145,7 @@ def champs_collaborateur(
                 com = "Absent du classeur."
         else:
             valeur, source, st = presence, S_PRESENCE, Statut.A_VERIFIER
-            com = f"Différent du classeur (« {classeur_v} ») : la valeur retenue mettra à jour la copie de travail."
+            com = f"Différent du classeur (« {classeur_v} ») : la valeur retenue mettra à jour le fichier Excel."
         if controle and valeur and not controle(valeur):
             st, com = Statut.ERREUR, "Format invalide."
         c.append(Champ(cle, libelle, valeur, source, st, com, obligatoire))

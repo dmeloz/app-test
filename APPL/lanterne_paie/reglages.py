@@ -36,8 +36,6 @@ class Reglages:
     agi_contrat_ecrit: str = ""  # "oui", "non" ou ""
     agi_activite: str = "Animateur·trice"
     agi_gabarit_valide: bool = False
-    # Les prestations validées sont aussi ajoutées au classeur annuel (après sauvegarde et confirmation).
-    maj_classeur_annuel: bool = True
     # Courriel
     outlook_adresse: str = "https://outlook.live.com/mail/0/deeplink/compose"
     email_objet: str = "La Lanterne Magique – fiche de salaire {mois}"

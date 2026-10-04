@@ -1,4 +1,4 @@
-"""Contrôle d'intégrité : la copie de travail conserve onglets, formules et extensions de l'original."""
+"""Contrôle d'intégrité : le fichier rempli conserve onglets, formules et extensions de sa sauvegarde."""
 
 from __future__ import annotations
 

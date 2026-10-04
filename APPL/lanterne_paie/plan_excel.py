@@ -1,4 +1,4 @@
-"""Plan des écritures dans la copie de travail (calculé ici, exécuté par Excel).
+"""Plan des écritures dans le fichier Excel (calculé ici, exécuté par Excel).
 
 Seules des cellules de SAISIE sont écrites. Aucune formule, ligne, onglet ou taux n'est modifié.
 """

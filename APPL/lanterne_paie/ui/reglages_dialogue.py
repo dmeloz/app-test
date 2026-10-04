@@ -87,14 +87,6 @@ class DialogueReglages(QDialog):
         f.addRow(QLabel("Le formulaire officiel vierge est fourni avec l'application : aucun modèle à installer."))
         mise.addWidget(boite)
 
-        boite = QGroupBox("Classeur Excel annuel")
-        f = QFormLayout(boite)
-        self.maj_annuel = QCheckBox("Ajouter aussi collaborateur, date de séance et prestation au classeur annuel "
-                                    "(sauvegarde et confirmation avant chaque modification)")
-        self.maj_annuel.setChecked(reglages.maj_classeur_annuel)
-        f.addRow(self.maj_annuel)
-        mise.addWidget(boite)
-
         # Courriel
         boite = QGroupBox("E-mail (Outlook dans Google Chrome, jamais envoyé)")
         f = QFormLayout(boite)
@@ -194,7 +186,6 @@ class DialogueReglages(QDialog):
         contrat = self.contrat.currentText()
         self.r.agi_contrat_ecrit = contrat if contrat in ("oui", "non") else ""
         self.r.agi_gabarit_valide = self.gabarit_valide.isChecked()
-        self.r.maj_classeur_annuel = self.maj_annuel.isChecked()
         self.r.outlook_adresse = OUTLOOK[self.outlook.currentText()]
         self.r.email_objet = self.objet.text()
         self.r.email_texte = self.texte.toPlainText()
