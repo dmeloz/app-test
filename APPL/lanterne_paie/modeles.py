@@ -83,6 +83,7 @@ class FichePresence:
     programme: str = ""
     cinema: str = ""
     intervenants: list[Intervenant] = field(default_factory=list)
+    organisation: dict[str, Intervenant] = field(default_factory=dict)  # « Responsable », « Comptabilité »
     cachet_artiste: str = ""
 
 

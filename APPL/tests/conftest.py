@@ -70,6 +70,11 @@ def creer_presence(chemin: Path, date_seance: str = "03.10.2026") -> Path:
             x += c.stringWidth(morceau, "Helvetica", 20) + 15
         y -= 70
     ecrire(108, y, "Organisation", True)
+    ecrire(108, y - 35, "Responsable", True); ecrire(313, y - 35, "Personne Responsable")
+    ecrire(313, y - 57, "079 000 00 08"); ecrire(470, y - 57, "resp@example.org")
+    ecrire(108, y - 92, "Comptabilité", True); ecrire(313, y - 92, "Personne Comptable")
+    ecrire(313, y - 114, "076 000 00 09"); ecrire(470, y - 114, "compta@example.org")
+    y -= 120
     ecrire(108, y - 80, "Informations importantes", True)
     ecrire(108, y - 110, "Le cachet de l’artiste est de")
     ecrire(108, y - 135, "CHF 319.– (défraiement inclus)")

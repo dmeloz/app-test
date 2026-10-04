@@ -111,7 +111,7 @@ def analyser(
     elif len(exactes) == 1:
         choisi = exactes[0]
     champs += champs_collaborateur(intervenant, exactes, proches, choisi)
-    champs += champs_agi(reglages.agi_activite)
+    champs += champs_agi(reglages.agi_activite, reglages.agi_telephone_club, fiche)
     return Analyse(racine, fiche, intervenant, planning, classeur, choisi, champs, documents)
 
 
@@ -186,6 +186,8 @@ def generer(
 
     moment = datetime.now()
     modele_agi = Path(reglages.modele_agi) if reglages.modele_agi else None
+    if modele_agi is None or not modele_agi.exists():
+        modele_agi = agi_formulaire.MODELE_VIERGE  # formulaire officiel vierge fourni avec l'application
     sauvegarde = sauvegarder(racine, [analyse.classeur.chemin, modele_agi, analyse.fiche.source], moment)
     rapport = Rapport(mois=nom_dossier_mois(jour), collaborateur=collab.cle, documents_analyses=analyse.documents,
                       sauvegarde=str(sauvegarde))
@@ -193,6 +195,11 @@ def generer(
     resultat = Resultat(rapport=rapport, destinataire=collab.email, prenom=collab.prenom, date_seance=jour)
     journaliser(racine, f"Début du traitement {collab.cle} – séance du {jj_mm_aaaa(jour)} – sauvegarde {sauvegarde}")
 
+    if reglages.maj_classeur_annuel and excel_mac.classeur_ouvert(analyse.classeur.chemin):
+        raise TraitementInterrompu(
+            f"Le classeur « {analyse.classeur.chemin.name} » est ouvert dans Excel : fermez-le, puis cliquez à "
+            "nouveau sur Générer."
+        )
     try:
         copier_sans_ecraser(analyse.classeur.chemin, cibles["excel"])
         resultat.excel = cibles["excel"]
@@ -297,7 +304,7 @@ def donnees_formulaire_agi(lu: ResultatExcel, collab: Collaborateur, jour: date,
         "assureur_lpp": reglages.agi_assureur_lpp if lpp else "",
         "caisse_avs": reglages.agi_caisse_avs,
         "lieu_date": f"{lieu}, le {jj_mm_aaaa(date.today())}" if lieu else "",
-        "telephone": reglages.agi_telephone_club,
+        "telephone": champ.get("telephone_agi") or reglages.agi_telephone_club,
         "adresse_employeur": [premiere, *adresse_club] if premiere else [],
     }
 
@@ -376,7 +383,7 @@ def valeurs_agi(lu: ResultatExcel, collab: Collaborateur, jour: date, reglages: 
 
 
 def _signature(reglages: Reglages) -> Path | None:
-    if reglages.signature_methode in ("image", "dessin") and reglages.signature_image:
+    if reglages.signature_methode in ("image", "dessin", "agi") and reglages.signature_image:
         chemin = Path(reglages.signature_image)
         return chemin if chemin.exists() else None
     return None

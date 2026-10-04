@@ -34,7 +34,9 @@ class DialogueReglages(QDialog):
         g = QVBoxLayout(boite)
         self.groupe = QButtonGroup(self)
         self.choix = {}
-        for cle, texte in (("aucune", "Aucune signature"), ("image", "Image de signature (PNG ou JPG)"),
+        for cle, texte in (("aucune", "Aucune signature"),
+                           ("agi", "Reprendre ma signature d'un AGI déjà signé (recommandé)"),
+                           ("image", "Image de signature (PNG ou JPG)"),
                            ("dessin", "Signature dessinée dans l'application"),
                            ("certifiee", "Signature numérique certifiée (version future)")):
             bouton = QRadioButton(texte)
@@ -49,7 +51,10 @@ class DialogueReglages(QDialog):
         b_image.clicked.connect(self.choisir_image)
         b_dessin = QPushButton("Dessiner…")
         b_dessin.clicked.connect(self.dessiner)
+        b_agi = QPushButton("Choisir un AGI signé…")
+        b_agi.clicked.connect(self.reprendre_signature)
         ligne.addWidget(self.etiquette_sig, 1)
+        ligne.addWidget(b_agi)
         ligne.addWidget(b_image)
         ligne.addWidget(b_dessin)
         g.addLayout(ligne)
@@ -60,6 +65,7 @@ class DialogueReglages(QDialog):
         f = QFormLayout(boite)
         self.lieu = QLineEdit(reglages.agi_lieu)
         self.telephone = QLineEdit(reglages.agi_telephone_club)
+        self.telephone.setPlaceholderText("vide = téléphone « Comptabilité » de la fiche de présence")
         self.caisse = QLineEdit(reglages.agi_caisse_avs)
         self.assureur = QLineEdit(reglages.agi_assureur_lpp)
         self.activite = QLineEdit(reglages.agi_activite)
@@ -78,8 +84,7 @@ class DialogueReglages(QDialog):
         f.addRow("Contrat écrit (modèle sans champs)", self.contrat)
         f.addRow(apercu)
         f.addRow(self.gabarit_valide)
-        f.addRow(QLabel("Conseil : placez le formulaire officiel remplissable (716.105 f) dans « Modèles » ;\n"
-                        "un AGI déjà rempli convient aussi : il est entièrement vidé avant usage."))
+        f.addRow(QLabel("Le formulaire officiel vierge est fourni avec l'application : aucun modèle à installer."))
         mise.addWidget(boite)
 
         boite = QGroupBox("Classeur Excel annuel")
@@ -123,6 +128,20 @@ class DialogueReglages(QDialog):
             self.etiquette_sig.setText(Path(chemin).name)
             self.choix["image"].setChecked(True)
 
+    def reprendre_signature(self) -> None:
+        chemin, _ = QFileDialog.getOpenFileName(self, "AGI déjà signé", "", "PDF (*.pdf)")
+        if not chemin:
+            return
+        cible = dossier_application() / "signature_agi.pdf"
+        if cible.exists():
+            cible.unlink()  # remplacement volontaire de la signature enregistrée par l'application
+        if agi_formulaire.extraire_signature(Path(chemin), cible):
+            self.r.signature_image = str(cible)
+            self.etiquette_sig.setText(f"Signature reprise de « {Path(chemin).name} »")
+            self.choix["agi"].setChecked(True)
+        else:
+            QMessageBox.warning(self, "Signature", "Aucune signature trouvée dans ce PDF.")
+
     def dessiner(self) -> None:
         d = DialogueSignature(self)
         if d.exec():
@@ -133,15 +152,14 @@ class DialogueReglages(QDialog):
                 self.choix["dessin"].setChecked(True)
 
     def apercu_agi(self) -> None:
-        if not self.r.modele_agi or not Path(self.r.modele_agi).exists():
-            QMessageBox.warning(self, "Aperçu", "Sélectionnez d'abord le modèle AGI dans la fenêtre principale.")
-            return
+        modele = Path(self.r.modele_agi) if self.r.modele_agi and Path(self.r.modele_agi).exists() \
+            else agi_formulaire.MODELE_VIERGE
         sortie = Path(tempfile.mkdtemp(prefix="apercu_agi_")) / "Apercu_AGI_fictif.pdf"
         sig = Path(self.r.signature_image) if self.r.signature_image else None
         sig = sig if sig and sig.exists() else None
         lieu = f"{self.lieu.text() or 'Lieu'}, le {date.today():%d.%m.%Y}"
-        if agi_formulaire.est_formulaire(Path(self.r.modele_agi)):
-            agi_formulaire.remplir_formulaire(Path(self.r.modele_agi), sortie, {
+        if agi_formulaire.est_formulaire(modele):
+            agi_formulaire.remplir_formulaire(modele, sortie, {
                 "nom_prenom": "Exemple Camille", "no_avs": "756.0000.0000.02", "adresse": "1000 Lausanne, Rue Fictive 1",
                 "date_naissance": "01.01.1990", "mois": "octobre", "annee": "2026", "activite": self.activite.text(),
                 "calendrier": 3, "heures": "8", "salaire_contractuel": "000,00", "salaire_base": "000,00",
@@ -161,7 +179,7 @@ class DialogueReglages(QDialog):
             "lieu_date": lieu, "telephone_club": self.telephone.text(),
             "adresse_club": ["Club (adresse lue dans Excel)", "Rue", "NPA Localité"], "signature": True,
         }
-        agi.remplir(Path(self.r.modele_agi), sortie, valeurs, sig)
+        agi.remplir(modele, sortie, valeurs, sig)
         courriel.ouvrir(sortie)
 
     def valider(self) -> None:

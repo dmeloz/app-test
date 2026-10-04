@@ -140,5 +140,21 @@ def test_generation_avec_formulaire_officiel(reglages, dossier_principal):
     assert v["12_cotisations_LPP"] == "/1"
     assert v["13_Caisse_de_compensation_AVS"] == "Caisse Cantonale Vaudoise de Compensation"
     assert v["Lieu_date"].startswith("Testville, le ")
+    assert v["n_de_téléphone"] == "076 000 00 09"  # ligne « Comptabilité » de la fiche de présence
     apres = _empreintes(dossier_principal)
     assert all(apres.get(p) == h for p, h in originaux.items())  # classeur annuel non touché (option désactivée)
+
+
+def test_modele_integre_par_defaut(reglages, dossier_principal):
+    from lanterne_paie.agi_formulaire import valeurs_remplies
+
+    from .outils import substitut_excel
+
+    if not substitut_excel.disponible():
+        pytest.skip("LibreOffice Calc (python3-uno) indisponible")
+    reglages.modele_agi = ""  # aucun modèle choisi : formulaire officiel intégré
+    reglages.maj_classeur_annuel = False
+    a = analyser(reglages, presence(dossier_principal), 0)
+    res = generer(a, reglages, lambda *_: True, lambda p: True, executer_excel=substitut_excel.executer)
+    v = valeurs_remplies(res.pdf_agi)
+    assert v["Nom_et_prénom"] == "Exemple Camille" and v["1_3"] == "8"

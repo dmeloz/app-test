@@ -146,7 +146,7 @@ class Fenetre(QMainWindow):
     def _restaurer(self) -> None:
         self.ch_dossier.setText(self.r.dossier_principal)
         self.ch_planning.setText(self.r.planning)
-        self.ch_agi.setText(self.r.modele_agi)
+        self.ch_agi.setText(self.r.modele_agi or "(formulaire officiel intégré à l'application)")
         self._afficher_classeurs()
         self._remplir_mois()
 

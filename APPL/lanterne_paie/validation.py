@@ -186,13 +186,24 @@ def champs_collaborateur(
     return c
 
 
-def champs_agi(activite_defaut: str) -> list[Champ]:
+def champs_agi(activite_defaut: str, telephone_reglages: str, fiche: FichePresence) -> list[Champ]:
     """Données propres à l'AGI, absentes du classeur."""
+    compta = fiche.organisation.get("Comptabilité")
+    tel_fiche = compta.telephones[0] if compta and compta.telephones else ""
+    if telephone_reglages:
+        tel = Champ("telephone_agi", "N° de téléphone (AGI)", telephone_reglages, "Réglages", Statut.VALIDE)
+    elif tel_fiche:
+        tel = Champ("telephone_agi", "N° de téléphone (AGI)", tel_fiche, f"{S_PRESENCE} (Comptabilité)",
+                    Statut.VALIDE, "Repris de la ligne « Comptabilité ».")
+    else:
+        tel = Champ("telephone_agi", "N° de téléphone (AGI)", "", S_SAISIE, Statut.A_VERIFIER,
+                    "Introuvable : à saisir (ou Réglages).")
     return [
-        Champ("activite_agi", "Activité exercée (AGI)", activite_defaut, "Réglages", Statut.A_VERIFIER,
-              "Adapter si besoin : Animateur / Animatrice.", True),
+        Champ("activite_agi", "Activité exercée (AGI)", activite_defaut, "Réglages", Statut.VALIDE,
+              "Modifiable : « Animateur » ou « Animatrice »."),
         Champ("etat_civil", "État civil (AGI)", "", S_SAISIE, Statut.VALIDE,
               "Facultatif : laisser vide si inconnu."),
+        tel,
     ]
 
 

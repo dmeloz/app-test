@@ -19,6 +19,9 @@ from .modeles import Champ, Statut
 
 _BASE = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
 CORRESPONDANCES = _BASE / "ressources" / "agi_formulaire.json"
+MODELE_VIERGE = _BASE / "ressources" / "AGI_716.105_f_vierge.pdf"
+_OPS_ETAT = {b"q", b"Q", b"cm", b"w", b"J", b"j", b"M", b"d", b"gs", b"RG", b"rg", b"G", b"g", b"K", b"k",
+             b"CS", b"cs", b"SC", b"sc", b"SCN", b"scn", b"ri", b"i"}
 SOURCE = "Formulaire AGI"
 
 
@@ -101,6 +104,9 @@ def nettoyer(redacteur: PdfWriter) -> int:
         elif t == "/Sig":
             parent.pop("/V", None)
             w.pop("/AP", None)  # ancienne signature visible
+        for objet in (w, parent):
+            for cle in [k for k in objet.keys() if k == "/M" or str(k).startswith("/AAPL")]:
+                del objet[cle]  # dates et marqueurs ajoutés par Aperçu
     return retirees
 
 
@@ -108,11 +114,12 @@ _PEINTURE = {b"S", b"s", b"f", b"F", b"f*", b"B", b"B*", b"b", b"b*", b"n"}
 _CONSTRUCTION = {b"m", b"l", b"c", b"v", b"y", b"h", b"re"}
 
 
-def retirer_traces(page, redacteur: PdfWriter, zone: list[float]) -> int:
+def retirer_traces(page, redacteur: PdfWriter, zone: list[float], garder_seulement: bool = False) -> int:
     """Retire les tracés (lignes, courbes) situés entièrement dans la zone de signature.
 
     Un AGI déjà signé contient sa signature dans le dessin de la page : utilisé comme modèle, elle
-    réapparaîtrait sous la nouvelle.
+    réapparaîtrait sous la nouvelle. Avec garder_seulement=True, c'est l'inverse : seuls ces tracés
+    sont conservés (extraction de la signature).
     """
     from pypdf.generic import ContentStream
 
@@ -138,20 +145,72 @@ def retirer_traces(page, redacteur: PdfWriter, zone: list[float]) -> int:
             points += [_point(ctm, valeurs[i], valeurs[i + 1]) for i in range(0, len(valeurs) - 1, 2)]
             continue
         if op in _PEINTURE and chemin:
-            dedans = points and all(x0 <= px <= x1 and y0 <= py <= y1 for px, py in points)
+            dedans = bool(points) and all(x0 <= px <= x1 and y0 <= py <= y1 for px, py in points)
             if dedans:
                 retires += 1
-            else:
+            if dedans == garder_seulement:
                 garder += chemin + [(operandes, op)]
             chemin, points = [], []
             continue
-        garder += chemin
+        if not garder_seulement:
+            garder += chemin + [(operandes, op)]  # ex. détourage « re W n » : conservé tel quel
+        elif op in _OPS_ETAT:
+            garder.append((operandes, op))
         chemin, points = [], []
-        garder.append((operandes, op))
-    if retires:
+    if retires or garder_seulement:
         flux.operations = garder
         page.replace_contents(flux)
     return retires
+
+
+def _propre(redacteur: PdfWriter) -> PdfWriter:
+    """Ne recopie que les objets utilisés, sans métadonnées XMP ni dates d'origine."""
+    tampon = io.BytesIO()
+    redacteur.write(tampon)
+    propre = PdfWriter(clone_from=PdfReader(io.BytesIO(tampon.getvalue())))
+    propre._root_object.pop("/Metadata", None)
+    propre.metadata = None  # dates et auteur d'origine retirés
+    propre.add_metadata({"/Title": "Attestation de gain intermédiaire (716.105 f)", "/Producer": "Lanterne Paie"})
+    return propre
+
+
+def creer_modele_vierge(source: Path, sortie: Path) -> Path:
+    """Formulaire vierge à partir d'un AGI rempli : champs, annotations, signature et métadonnées retirés."""
+    corr = charger_correspondances()
+    redacteur = PdfWriter(clone_from=PdfReader(str(source)))
+    nettoyer(redacteur)
+    sig = corr.get("signature", {})
+    page = next((p for p, w, n, _ in _widgets(redacteur) if n == sig.get("champ")), None)
+    if page is not None:
+        retirer_traces(page, redacteur, sig["zone"])
+    propre = _propre(redacteur)
+    propre.set_need_appearances_writer(True)
+    with sortie.open("wb") as f:
+        propre.write(f)
+    return sortie
+
+
+def extraire_signature(source: Path, sortie: Path) -> bool:
+    """Reprend la signature dessinée d'un AGI déjà signé (tracés de la zone « Signature »).
+
+    Le résultat est une page PDF ne contenant que la signature, à la même position ; elle est
+    superposée aux AGI suivants. Retourne False si aucune signature n'est trouvée.
+    """
+    corr = charger_correspondances()
+    redacteur = PdfWriter(clone_from=PdfReader(str(source)))
+    sig = corr.get("signature", {})
+    page = next((p for p, w, n, _ in _widgets(redacteur) if n == sig.get("champ")), None)
+    if page is None:
+        return False
+    nb = retirer_traces(page, redacteur, sig["zone"], garder_seulement=True)
+    if nb == 0:
+        return False
+    page.pop("/Annots", None)
+    seule = PdfWriter()
+    seule.add_page(page)
+    with sortie.open("wb") as f:
+        _propre(seule).write(f)
+    return True
 
 
 def _etats(w) -> list[str]:
@@ -259,10 +318,18 @@ def remplir_formulaire(
 
     # Signature : image dans la zone du champ « Signature » (le champ reste libre pour une
     # future signature numérique certifiée).
-    if signature is not None and signature.exists():
+    if signature is None or not signature.exists():
+        champs.append(Champ("agi:signature", "Signature", "", SOURCE, Statut.A_VERIFIER,
+                            "Aucune signature configurée : signer l'AGI avant envoi (ou Réglages › Signature).",
+                            modifiable=False))
+    else:
         if page_sig is None:
             champs.append(Champ("agi:signature", "Signature", signature.name, SOURCE, Statut.A_VERIFIER,
                                 "Champ « Signature » introuvable : signature non apposée.", modifiable=False))
+        elif signature.suffix.lower() == ".pdf":
+            page_sig.merge_page(PdfReader(str(signature)).pages[0])
+            champs.append(Champ("agi:signature", "Signature", "reprise d'un AGI signé", SOURCE, Statut.VALIDE, "",
+                                modifiable=False))
         else:
             x0, y0, x1, y1 = sig["zone"]
             tampon = io.BytesIO()
@@ -277,9 +344,7 @@ def remplir_formulaire(
 
     # Seconde passe : seuls les objets encore utilisés sont recopiés (les anciennes valeurs, annotations
     # et signatures retirées ne subsistent pas, même invisibles, dans le fichier produit).
-    tampon = io.BytesIO()
-    redacteur.write(tampon)
-    propre = PdfWriter(clone_from=PdfReader(io.BytesIO(tampon.getvalue())))
+    propre = _propre(redacteur)
     propre.set_need_appearances_writer(True)
     if sortie.exists():
         raise FileExistsError(sortie)

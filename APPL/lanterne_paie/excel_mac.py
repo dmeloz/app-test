@@ -138,3 +138,20 @@ def executer(script: str, delai: int = 180) -> str:
 def traiter(classeur: Path, ecritures: list[Ecriture], feuille_fiche: str, pdf: Path | None) -> ResultatExcel:
     sortie = executer(generer_script(classeur, ecritures, feuille_fiche, pdf))
     return lire_sortie(sortie)
+
+
+def classeur_ouvert(classeur: Path) -> bool:
+    """Le classeur est-il ouvert dans Excel ? (Ne lance pas Excel s'il n'est pas déjà ouvert.)"""
+    if sys.platform != "darwin":
+        return False
+    script = (
+        'if application "Microsoft Excel" is running then\n'
+        '\ttell application "Microsoft Excel" to return (name of every workbook) as text\n'
+        "end if\n"
+        'return ""\n'
+    )
+    try:
+        sortie = executer(script, delai=20)
+    except ErreurExcel:
+        return False
+    return classeur.name in sortie

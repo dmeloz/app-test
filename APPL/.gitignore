@@ -16,3 +16,4 @@ __pycache__/
 build/
 dist/
 *.spec
+!ressources/AGI_716.105_f_vierge.pdf

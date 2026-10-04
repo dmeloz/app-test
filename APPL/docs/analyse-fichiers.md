@@ -181,6 +181,7 @@ Voir décision D3.
 | D6 | E-mail | Brouillon Outlook Web dans Chrome + pièces jointes montrées dans le Finder. |
 | D7 | Excel installé | **Confirmé par Sarah.** |
 | D8 | Classeur annuel | **Validé par Sarah** : le classeur annuel cumule aussi les prestations (déclaration AVS, certificats). Mêmes écritures que la copie (sauf la sélection de la fiche), après sauvegarde horodatée et confirmation ; relu avant chaque génération (pas de doublon) ; intégrité contrôlée contre la sauvegarde. Option désactivable. |
+| D11 | Simplification | Formulaire officiel vierge fourni avec l'application (créé à partir de l'AGI de l'association, entièrement vidé) ; signature reprise d'un AGI déjà signé ; téléphone repris de la ligne « Comptabilité » de la fiche de présence ; classeur ouvert dans Excel détecté. Point 8 : salaire sur la ligne « par mois » comme sur l'AGI rempli (la consigne de l'association indique la ligne « par jour ») — *à confirmer*. |
 | D10 | AGI remplissable | **Exemple fourni par Sarah** (AGI rempli par l'association) : formulaire officiel 716.105 f avec 105 champs. L'application remplit les champs et applique les conventions de l'exemple. |
 | D9 | Indépendant·e | Le classeur ne produit pas de fiche de salaire pour un statut « Indépendant » (contrôle D8) : statut Erreur, génération bloquée. |
 

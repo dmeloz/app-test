@@ -12,18 +12,39 @@ salariale vers un service distant. La seule ouverture d'Internet est le brouillo
 
 ## Installation (une seule fois)
 
-1. Installer **Python 3.11 ou plus récent** depuis <https://www.python.org/downloads/macos/>.
-2. Vérifier que **Microsoft Excel** et **Google Chrome** sont installés.
-3. Double-cliquer sur `Installer.command`. C'est le seul moment où une connexion Internet est nécessaire.
-4. Lancer l'application avec `Lancer Lanterne Paie.command`.
+### Méthode simple, sans rien installer d'autre que l'application
 
-La première fois, macOS demande deux autorisations :
+1. Ouvrir la page GitHub du dépôt, onglet **Actions**, puis le dernier passage réussi (coche verte) de
+   **« Lanterne Paie (macOS) »**.
+2. En bas de la page, dans **Artifacts**, télécharger **Lanterne-Paie-macOS**.
+3. Double-cliquer sur le fichier téléchargé pour l'ouvrir. Si un fichier `.zip` apparaît, double-cliquer aussi
+   dessus. Glisser ensuite **Lanterne Paie.app** dans le dossier **Applications**.
+4. Au premier lancement : **clic droit › Ouvrir**, puis **Ouvrir**. L'application n'est pas signée par Apple,
+   macOS demande donc une confirmation la première fois.
 
-- **« Lanterne Paie / Terminal souhaite contrôler Microsoft Excel »** : répondre *OK*
-  (Réglages Système › Confidentialité et sécurité › Automatisation).
-- Excel peut demander l'**accès au dossier** : choisir le dossier principal et cliquer *Accorder l'accès*.
+Il faut aussi **Microsoft Excel** et **Google Chrome**.
 
-Facultatif : `scripts/construire_app.command` crée une application `dist/Lanterne Paie.app`.
+### Méthode développeur
+
+Installer Python 3.11+, double-cliquer sur `Installer.command`, puis lancer avec
+`Lancer Lanterne Paie.command`.
+
+### Autorisations demandées par macOS la première fois
+
+- **« Lanterne Paie souhaite contrôler Microsoft Excel »** : répondre *OK*.
+- Excel peut demander l'**accès au dossier** : choisir le dossier de la saison et cliquer *Accorder l'accès*.
+
+### Réglages à faire une seule fois (bouton « Réglages… »)
+
+- **Signature** : cliquer sur **« Choisir un AGI signé… »** et sélectionner un AGI que vous avez déjà signé.
+  L'application reprend votre signature et l'appose sur les AGI suivants.
+
+C'est tout. Le reste est automatique :
+- **Formulaire AGI** : le formulaire officiel vierge est fourni avec l'application.
+- **Téléphone de l'AGI** : repris de la ligne « Comptabilité » de la fiche de présence.
+- **Classeur ouvert** : si le classeur annuel est ouvert dans Excel, l'application le signale et vous demande
+  de le fermer.
+- **Activité** : « Animateur·trice » par défaut, modifiable dans le tableau (« Animatrice »…).
 
 ## Utilisation
 

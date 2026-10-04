@@ -11,6 +11,7 @@ from .modeles import FichePresence, Intervenant
 from .pdf_texte import Segment, rangees, segments
 
 FONCTIONS = ["Savant·e", "Naïf·ve", "Artiste", "Musicien·ne"]
+ROLES_ORGANISATION = ["Responsable", "Comptabilité"]
 _LIBELLES = {
     "seance": "Séance",
     "programme": "Programme",
@@ -59,7 +60,7 @@ def _lignes_excel(chemin: Path) -> list[tuple[str, list[str]]]:
                 cellules = [str(v).strip() for v in ligne if v is not None and str(v).strip()]
                 if not cellules:
                     continue
-                if cellules[0] in FONCTIONS or cellules[0] in _LIBELLES.values():
+                if cellules[0] in FONCTIONS or cellules[0] in ROLES_ORGANISATION or cellules[0] in _LIBELLES.values():
                     resultat.append((cellules[0], cellules[1:]))
                 else:
                     resultat.append(("", cellules))
@@ -92,6 +93,11 @@ def analyser_lignes(chemin: Path, lignes: list[tuple[str, list[str]]]) -> FicheP
             fiche.programme = valeurs[0]
         elif section == _LIBELLES["cinema"] and valeurs and not fiche.cinema:
             fiche.cinema = valeurs[0]
+        elif section in ROLES_ORGANISATION:
+            if libelle and valeurs:
+                fiche.organisation[section] = _intervenant(section, valeurs)
+            elif section in fiche.organisation and valeurs:
+                _completer_contacts(fiche.organisation[section], " ".join(valeurs))
         elif section in FONCTIONS:
             if libelle and valeurs:
                 fonction_courante = _intervenant(section, valeurs)

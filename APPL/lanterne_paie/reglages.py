@@ -25,7 +25,7 @@ class Reglages:
     classeurs: dict[str, str] = field(default_factory=dict)  # année -> chemin
     modele_agi: str = ""
     planning: str = ""
-    # Signature : "aucune", "image", "dessin" ; "certifiee" réservée à une version future.
+    # Signature : "aucune", "image", "dessin", "agi" (reprise d'un AGI signé) ; "certifiee" : version future.
     signature_methode: str = "aucune"
     signature_image: str = ""
     # Réponses de l'association pour l'AGI (laisser vide si inconnu => « À vérifier »).
