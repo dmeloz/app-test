@@ -345,8 +345,10 @@ class Fenetre(QMainWindow):
         boite = QMessageBox(self)
         boite.setWindowTitle(titre)
         boite.setIcon(QMessageBox.Question)
-        boite.setText("Les modifications suivantes seront faites dans la COPIE de travail "
-                      "(le fichier Excel original n'est jamais modifié). Confirmer ?")
+        annuel = " et dans le classeur annuel (sauvegardé avant)" if self.r.maj_classeur_annuel else \
+            " uniquement (le classeur annuel n'est pas modifié)"
+        boite.setText(f"Les données suivantes seront écrites dans la copie de travail{annuel}. "
+                      "Aucune formule, ligne, onglet ni taux n'est modifié. Confirmer ?")
         boite.setDetailedText("\n".join(lignes))
         boite.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
         boite.button(QMessageBox.Yes).setText("Confirmer")

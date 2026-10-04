@@ -95,12 +95,15 @@ def detecter_planning(racine: Path) -> list[Path]:
 
 
 def detecter_modele_agi(racine: Path) -> list[Path]:
+    """Modèles AGI ; le formulaire officiel remplissable passe en premier."""
+    from .agi_formulaire import est_formulaire
+
     dossiers = [racine / DOSSIER_MODELES, racine / DOSSIER_AGI, racine]
     trouves = []
     for d in dossiers:
         if d.is_dir():
             trouves += [p for p in sorted(d.glob("*.pdf")) if "gain" in p.name.lower() and "mod" in p.name.lower()]
-    return trouves
+    return sorted(trouves, key=lambda p: not est_formulaire(p))
 
 
 def detecter_fiches_presence(dossier_mois: Path) -> list[Path]:

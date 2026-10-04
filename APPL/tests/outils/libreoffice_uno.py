@@ -74,6 +74,10 @@ def main():
             else:
                 sortie.append(f"{cellule}\tTXT:{texte}")
         doc.store()
+        if not demande["pdf"]:  # mise à jour du classeur annuel : pas d'export
+            doc.close(True)
+            print("\n".join(sortie))
+            return
         # Export PDF de la zone d'impression de la feuille « Fiches de salaire ».
         zones = fiche.getPrintAreas()
         selection = fiche.getCellRangeByPosition(

@@ -1,0 +1,112 @@
+{
+  "_description": "Formulaire officiel AGI 716.105 f remplissable. « constantes » : réponses habituelles de l'association (reprises d'un AGI rempli par l'association) ; « donnees » : champ du formulaire pour chaque donnée de l'application. Pour une case à choix, la valeur est l'état PDF : /0 = première option (oui), /1 = seconde option (non), /Ja = coché.",
+  "constantes": {
+    "2_contrat_de_travail_écrit": "/1",
+    "3_durée_hebdomaire_de_travail_convenue": "/1",
+    "5_convention_collective_de_travail": "/1",
+    "6_offert_plus_heures_de_travail": "/1",
+    "7_motif_refusé_possibilité1": "Contrat à durée déterminée d'un jour",
+    "11_13e_salaire_gratification": "/1",
+    "14_allocations_pour_enfant_de_formation_versées": "/1",
+    "14_pour_quelle_raison1": "------------------",
+    "15_L_activité_poursuit_non": "/Ja",
+    "15_qui_a_résilié": "------",
+    "15_quand": "--------",
+    "15_pour_quelle_date": "-----",
+    "16_motif_résilation_rapport_du_travail1": "Contrat à durée déterminée d'un jour",
+    "17_fonction_dirigeante": "/1"
+  },
+  "donnees": {
+    "nom_prenom": {
+      "champ": "Nom_et_prénom",
+      "libelle": "Nom et prénom"
+    },
+    "no_avs": {
+      "champ": "N_AVS",
+      "libelle": "N° AVS"
+    },
+    "adresse": {
+      "champ": "NPA_localité_rue",
+      "libelle": "NPA, localité, rue"
+    },
+    "date_naissance": {
+      "champ": "Date_de_naissance",
+      "libelle": "Date de naissance"
+    },
+    "etat_civil": {
+      "champ": "Etat_civil",
+      "libelle": "État civil",
+      "facultatif": true
+    },
+    "mois": {
+      "champ": "mois",
+      "libelle": "Mois"
+    },
+    "annee": {
+      "champ": "année",
+      "libelle": "Année"
+    },
+    "activite": {
+      "champ": "Activité_exercée",
+      "libelle": "Activité exercée"
+    },
+    "calendrier": {
+      "champ": "1_{jour}",
+      "libelle": "Calendrier (heures du jour de séance)"
+    },
+    "salaire_contractuel": {
+      "champ": "8_salaire_contractuel_cotisation_AVS_par_mois",
+      "libelle": "8 Salaire contractuel brut soumis à cotisation AVS"
+    },
+    "salaire_base": {
+      "champ": "10_Salaire_de_base_CHF",
+      "libelle": "10 Salaire de base (CHF)"
+    },
+    "vacances_taux": {
+      "champ": "10_Indemnité_vacances_%",
+      "libelle": "10 Indemnités de vacances (%)"
+    },
+    "vacances_montant": {
+      "champ": "10_Indemnités_vacances_CHF",
+      "libelle": "10 Indemnités de vacances (CHF)"
+    },
+    "lpp": {
+      "champ": "12_cotisations_LPP",
+      "libelle": "12 Cotisations LPP (oui /0, non /1)"
+    },
+    "assureur_lpp": {
+      "champ": "12_nom_de_l_assureur_LPP",
+      "libelle": "12 Assureur LPP",
+      "facultatif": true
+    },
+    "caisse_avs": {
+      "champ": "13_Caisse_de_compensation_AVS",
+      "libelle": "13 Caisse de compensation AVS"
+    },
+    "lieu_date": {
+      "champ": "Lieu_date",
+      "libelle": "Lieu et date"
+    },
+    "telephone": {
+      "champ": "n_de_téléphone",
+      "libelle": "N° de téléphone"
+    }
+  },
+  "signature": {
+    "champ": "Signature",
+    "zone": [
+      305,
+      118,
+      445,
+      166
+    ]
+  },
+  "adresse_employeur": {
+    "_description": "Comme sur l'AGI rempli par l'association : adresse écrite sous la zone de signature (et non dans le champ, qui laisserait la signature la recouvrir).",
+    "x": 302,
+    "y": 106,
+    "interligne": 11,
+    "taille": 9,
+    "page_du_champ": "adresse_complète_employeur"
+  }
+}

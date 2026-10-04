@@ -174,17 +174,40 @@ Voir décision D3.
 | # | Question | Décision |
 |---|---|---|
 | D1 | Classeurs en année civile | **Validé par Sarah** : saison octobre → juin classée par mois ; un classeur Excel par année civile (2026, 2027). L'application choisit le classeur selon `Configuration!B5` et l'année de la séance. |
-| D2 | Fiche par séance / nom par mois | Une fiche par séance ; suffixe `YYYY-MM`, ou `YYYY-MM-JJ` si le club a plusieurs séances dans le mois. *Modifiable sur demande.* |
+| D2 | Fiche par séance / nom par mois | **Validé par Sarah** : une fiche par séance ; suffixe `YYYY-MM`, ou `YYYY-MM-JJ` si le club a plusieurs séances dans le mois. |
 | D3 | AGI sans champs | **Précisé par Sarah** : modèle officiel pré-rempli par l'association. Zones repérées par les textes du modèle ; les consignes (calque rose/rouge ajouté par l'association) sont retirées là où une valeur est écrite ; les réponses pré-cochées sont conservées. Aperçu fictif à contrôler une fois. |
 | D4 | Date de séance absente de Configuration | Inscrite dans la copie de travail (B30:B32 pour les séances 1-3, B24:B29 pour 4-9), après confirmation. Date différente déjà présente = Erreur. |
 | D5 | Nouveau collaborateur | Ajouté dans la 1re ligne libre (6 à 40) de la copie, colonne C (formule) jamais écrite, après confirmation. |
 | D6 | E-mail | Brouillon Outlook Web dans Chrome + pièces jointes montrées dans le Finder. |
 | D7 | Excel installé | **Confirmé par Sarah.** |
-| D8 | Classeur maître | Le classeur original n'est **jamais** modifié : les ajouts vont dans la copie `Fiche_salaire_…xlsx` (consigne « créer une copie de travail »). *À confirmer : souhaitez-vous que le classeur annuel cumule aussi les prestations (pour la déclaration AVS et les certificats) ?* |
+| D8 | Classeur annuel | **Validé par Sarah** : le classeur annuel cumule aussi les prestations (déclaration AVS, certificats). Mêmes écritures que la copie (sauf la sélection de la fiche), après sauvegarde horodatée et confirmation ; relu avant chaque génération (pas de doublon) ; intégrité contrôlée contre la sauvegarde. Option désactivable. |
+| D10 | AGI remplissable | **Exemple fourni par Sarah** (AGI rempli par l'association) : formulaire officiel 716.105 f avec 105 champs. L'application remplit les champs et applique les conventions de l'exemple. |
 | D9 | Indépendant·e | Le classeur ne produit pas de fiche de salaire pour un statut « Indépendant » (contrôle D8) : statut Erreur, génération bloquée. |
 
 Protection : toutes les feuilles sont protégées ; les cellules écrites par l'application sont toutes
 déverrouillées [Fait vérifié]. La protection n'est jamais retirée.
+
+## 5 bis. AGI remplissable (exemple de l'association) [Fait vérifié]
+
+- 2 pages A4 portrait, 105 champs (texte, cases à choix, champ « Signature »). Pas de XFA.
+- Conventions de l'association reprises :
+  - « Nom Prénom » ; « NPA Localité, Rue » ;
+  - date de naissance JJ.MM.AAAA ; mois en lettres et année ;
+  - « 8 » dans la case du jour ; salaire contractuel au point 8, ligne « par mois » ;
+  - point 10 : salaire de base, taux et montant des vacances, avec virgule décimale ;
+  - réponses « non » aux questions 2, 3, 5, 6, 11, 14, 15 (avec tirets), 17 ;
+  - « Contrat à durée déterminée d'un jour » aux points 7 et 16 ;
+  - LPP non ; Caisse Cantonale Vaudoise de Compensation ; « Lieu, le JJ.MM.AAAA » ;
+  - adresse du club sous la signature.
+- Pièges du fichier d'exemple, tous traités :
+  - Les champs du formulaire existent en double : les champs affichés et une autre copie référencée par le
+    formulaire. La liste des champs est reconstruite à partir des champs affichés.
+  - Des valeurs par défaut (`/DV`) contiennent les anciennes données : elles sont supprimées.
+  - Les adresses ont été ajoutées en annotations de texte libre : elles sont supprimées.
+  - La signature est incrustée dans le dessin de la page : les tracés situés dans la zone de signature sont
+    supprimés.
+  - Une seconde passe ne recopie que les objets utilisés. Contrôle sur fichier réel : aucune donnée de
+    l'exemple ne subsiste dans l'AGI produit.
 
 ## 6. Architecture retenue
 

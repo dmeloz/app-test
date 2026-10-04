@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout, QLabel, QLineEdit, QMessageBox, QPlainTextEdit, QPushButton, QRadioButton, QVBoxLayout,
 )
 
-from .. import agi, courriel
+from .. import agi, agi_formulaire, courriel
 from ..reglages import Reglages, dossier_application
 from .signature import DialogueSignature
 
@@ -66,18 +66,28 @@ class DialogueReglages(QDialog):
         self.contrat = QComboBox()
         self.contrat.addItems(["(laisser la consigne)", "oui", "non"])
         self.contrat.setCurrentText(reglages.agi_contrat_ecrit or "(laisser la consigne)")
-        self.gabarit_valide = QCheckBox("J'ai contrôlé l'aperçu : les zones de l'AGI sont correctement placées")
+        self.gabarit_valide = QCheckBox("Modèle sans champs uniquement : j'ai contrôlé l'aperçu, les zones sont bien placées")
         self.gabarit_valide.setChecked(reglages.agi_gabarit_valide)
         apercu = QPushButton("Aperçu avec des données fictives…")
         apercu.clicked.connect(self.apercu_agi)
-        f.addRow("Lieu (« Lieu et date »)", self.lieu)
+        f.addRow("Lieu (vide = nom du club)", self.lieu)
         f.addRow("Téléphone du club", self.telephone)
         f.addRow("Caisse de compensation AVS", self.caisse)
         f.addRow("Assureur LPP (si LPP)", self.assureur)
         f.addRow("Activité exercée", self.activite)
-        f.addRow("Contrat de travail écrit", self.contrat)
+        f.addRow("Contrat écrit (modèle sans champs)", self.contrat)
         f.addRow(apercu)
         f.addRow(self.gabarit_valide)
+        f.addRow(QLabel("Conseil : placez le formulaire officiel remplissable (716.105 f) dans « Modèles » ;\n"
+                        "un AGI déjà rempli convient aussi : il est entièrement vidé avant usage."))
+        mise.addWidget(boite)
+
+        boite = QGroupBox("Classeur Excel annuel")
+        f = QFormLayout(boite)
+        self.maj_annuel = QCheckBox("Ajouter aussi collaborateur, date de séance et prestation au classeur annuel "
+                                    "(sauvegarde et confirmation avant chaque modification)")
+        self.maj_annuel.setChecked(reglages.maj_classeur_annuel)
+        f.addRow(self.maj_annuel)
         mise.addWidget(boite)
 
         # Courriel
@@ -127,6 +137,20 @@ class DialogueReglages(QDialog):
             QMessageBox.warning(self, "Aperçu", "Sélectionnez d'abord le modèle AGI dans la fenêtre principale.")
             return
         sortie = Path(tempfile.mkdtemp(prefix="apercu_agi_")) / "Apercu_AGI_fictif.pdf"
+        sig = Path(self.r.signature_image) if self.r.signature_image else None
+        sig = sig if sig and sig.exists() else None
+        lieu = f"{self.lieu.text() or 'Lieu'}, le {date.today():%d.%m.%Y}"
+        if agi_formulaire.est_formulaire(Path(self.r.modele_agi)):
+            agi_formulaire.remplir_formulaire(Path(self.r.modele_agi), sortie, {
+                "nom_prenom": "Exemple Camille", "no_avs": "756.0000.0000.02", "adresse": "1000 Lausanne, Rue Fictive 1",
+                "date_naissance": "01.01.1990", "mois": "octobre", "annee": "2026", "activite": self.activite.text(),
+                "calendrier": 3, "heures": "8", "salaire_contractuel": "000,00", "salaire_base": "000,00",
+                "vacances_taux": "00,00", "vacances_montant": "00,00", "lpp": "/1", "caisse_avs": self.caisse.text(),
+                "lieu_date": lieu, "telephone": self.telephone.text(),
+                "adresse_employeur": ["Club (adresse lue dans Excel)", "Rue", "NPA Localité"],
+            }, sig)
+            courriel.ouvrir(sortie)
+            return
         valeurs = {
             "nom_prenom": "EXEMPLE Camille", "no_avs": "756.0000.0000.02", "adresse": "Rue Fictive 1, 1000 Lausanne",
             "date_naissance": "01/01/1990", "etat_civil": True, "mois_annee": "10/2026", "activite": self.activite.text(),
@@ -134,11 +158,10 @@ class DialogueReglages(QDialog):
             "salaire_brut": "000.00", "note_point_10": True, "note_cotisation": True, "salaire_base_case": True,
             "salaire_base": "000.00", "vacances_case": True, "vacances_taux": "00.00", "vacances_montant": "00.00",
             "lpp_consigne": True, "lpp_non": True, "caisse_avs": self.caisse.text(),
-            "lieu_date": f"{self.lieu.text() or 'Lieu'}, {date.today():%d/%m/%Y}", "telephone_club": self.telephone.text(),
+            "lieu_date": lieu, "telephone_club": self.telephone.text(),
             "adresse_club": ["Club (adresse lue dans Excel)", "Rue", "NPA Localité"], "signature": True,
         }
-        sig = Path(self.r.signature_image) if self.r.signature_image else None
-        agi.remplir(Path(self.r.modele_agi), sortie, valeurs, sig if sig and sig.exists() else None)
+        agi.remplir(Path(self.r.modele_agi), sortie, valeurs, sig)
         courriel.ouvrir(sortie)
 
     def valider(self) -> None:
@@ -153,6 +176,7 @@ class DialogueReglages(QDialog):
         contrat = self.contrat.currentText()
         self.r.agi_contrat_ecrit = contrat if contrat in ("oui", "non") else ""
         self.r.agi_gabarit_valide = self.gabarit_valide.isChecked()
+        self.r.maj_classeur_annuel = self.maj_annuel.isChecked()
         self.r.outlook_adresse = OUTLOOK[self.outlook.currentText()]
         self.r.email_objet = self.objet.text()
         self.r.email_texte = self.texte.toPlainText()

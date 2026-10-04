@@ -27,6 +27,7 @@ class Rapport:
     donnees_a_verifier: list[dict] = field(default_factory=list)
     erreurs: list[dict] = field(default_factory=list)
     modifications_excel: list[str] = field(default_factory=list)
+    modifications_classeur_annuel: list[str] = field(default_factory=list)
     sauvegarde: str = ""
     fichier_excel: str = ""
     pdf_fiche_salaire: str = ""
@@ -78,6 +79,7 @@ th{{background:#f3f3f3}}h1{{font-size:20px}}h2{{font-size:16px;margin-top:1.5em}
 <h2>Données à vérifier</h2>{tableau(self.donnees_a_verifier)}
 <h2>Erreurs</h2>{tableau(self.erreurs)}
 <h2>Modifications apportées à la copie Excel</h2>{liste(self.modifications_excel)}
+<h2>Modifications apportées au classeur annuel</h2>{liste(self.modifications_classeur_annuel)}
 <h2>Résultats calculés par Excel</h2><table>{resultats or '<tr><td>—</td></tr>'}</table>
 <h2>Fichiers produits</h2><table>{lignes_fichiers}</table>
 </body></html>"""

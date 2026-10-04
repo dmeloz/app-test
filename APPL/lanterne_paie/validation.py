@@ -186,6 +186,16 @@ def champs_collaborateur(
     return c
 
 
+def champs_agi(activite_defaut: str) -> list[Champ]:
+    """Données propres à l'AGI, absentes du classeur."""
+    return [
+        Champ("activite_agi", "Activité exercée (AGI)", activite_defaut, "Réglages", Statut.A_VERIFIER,
+              "Adapter si besoin : Animateur / Animatrice.", True),
+        Champ("etat_civil", "État civil (AGI)", "", S_SAISIE, Statut.VALIDE,
+              "Facultatif : laisser vide si inconnu."),
+    ]
+
+
 def _chiffres(texte: str) -> str:
     """9 derniers chiffres : « 021 946 … », « +41 21 946 … » et « 21 946 … » (0 perdu par Excel) sont égaux."""
     return re.sub(r"\D", "", texte or "")[-9:]
@@ -205,6 +215,7 @@ CONTROLES = {
     "no_avs": avs_valide,
     "iban": iban_valide,
     "taux_lpp": lambda v: re.fullmatch(r"\d+(?:[.,]\d+)?\s*%?", v) is not None,
+    "activite_agi": bool,
 }
 
 

@@ -1,8 +1,10 @@
 import hashlib
+from datetime import date
 from pathlib import Path
 
 import pytest
 
+from lanterne_paie.classeur import lire_classeur
 from lanterne_paie.modeles import Statut
 from lanterne_paie.traitement import TraitementInterrompu, analyser, generer
 from lanterne_paie.validation import bloquants, revalider
@@ -91,13 +93,52 @@ def test_generation_complete_libreoffice(reglages, dossier_principal):
     assert res.excel.name == "Fiche_salaire_EXEMPLE_Camille_2026-10.xlsx"
     assert res.pdf_fiche.exists() and res.pdf_agi.exists() and res.chemin_rapport.exists()
     assert res.pdf_agi.parent == dossier_principal / "AGI" / "octobre 2026"
-    # Aucun fichier existant n'a été modifié ou supprimé.
+    # Seul le classeur annuel est modifié (prestation ajoutée) ; sa sauvegarde est l'original exact.
+    annuel = Path(reglages.classeurs["2026"])
     apres = _empreintes(dossier_principal)
-    assert all(apres.get(p) == h for p, h in originaux.items())
-    assert any(p.parent.parent.name == "Sauvegardes" for p in apres)
+    assert all(apres.get(p) == h for p, h in originaux.items() if p != annuel)
+    assert apres[annuel] != originaux[annuel]
+    sauvegarde = Path(res.rapport.sauvegarde) / annuel.name
+    assert _empreintes(sauvegarde.parent)[sauvegarde] == originaux[annuel]
+    for cle in ("annuel_integrite_formules", "annuel_integrite_saisies", "annuel_integrite_onglets"):
+        assert c[cle].statut is Statut.VALIDE, (cle, c[cle].commentaire)
+    relu = lire_classeur(annuel)
+    assert relu.seances[30] == date(2026, 10, 3)
+    assert [p.collaborateur for p in relu.prestations[30]] == ["Camille Exemple"]
 
     # Doublon : version alternative, jamais d'écrasement.
     a = analyser(reglages, presence(dossier_principal), 0)
     res2 = generer(a, reglages, lambda *_: True, lambda p: True, executer_excel=substitut_excel.executer)
     assert res2.excel.name == "Fiche_salaire_EXEMPLE_Camille_2026-10_v2.xlsx"
     assert res.excel.exists()
+    # Pas de doublon dans le classeur annuel.
+    assert [p.collaborateur for p in lire_classeur(annuel).prestations[30]] == ["Camille Exemple"]
+
+
+def test_generation_avec_formulaire_officiel(reglages, dossier_principal):
+    from lanterne_paie.agi_formulaire import valeurs_remplies
+
+    from .conftest import creer_formulaire_agi
+    from .outils import substitut_excel
+
+    if not substitut_excel.disponible():
+        pytest.skip("LibreOffice Calc (python3-uno) indisponible")
+    reglages.modele_agi = str(creer_formulaire_agi(dossier_principal / "Modèles" / "AGI formulaire.pdf"))
+    reglages.maj_classeur_annuel = False
+    originaux = _empreintes(dossier_principal)
+    a = analyser(reglages, presence(dossier_principal), 0)
+    activite = next(c for c in a.champs if c.cle == "activite_agi")
+    activite.valeur_corrigee = "Animatrice"
+    res = generer(a, reglages, lambda *_: True, lambda p: True, executer_excel=substitut_excel.executer)
+    v = valeurs_remplies(res.pdf_agi)
+    assert v["Nom_et_prénom"] == "Exemple Camille"
+    assert v["NPA_localité_rue"] == "1000 Lausanne, Rue Fictive 1"
+    assert (v["mois"], v["année"], v["1_3"]) == ("octobre", "2026", "8")
+    assert v["Activité_exercée"] == "Animatrice"
+    assert v["8_salaire_contractuel_cotisation_AVS_par_mois"] == "355,00"  # lu dans Excel (F27)
+    assert v["10_Indemnité_vacances_%"] == "10,64"
+    assert v["12_cotisations_LPP"] == "/1"
+    assert v["13_Caisse_de_compensation_AVS"] == "Caisse Cantonale Vaudoise de Compensation"
+    assert v["Lieu_date"].startswith("Testville, le ")
+    apres = _empreintes(dossier_principal)
+    assert all(apres.get(p) == h for p, h in originaux.items())  # classeur annuel non touché (option désactivée)

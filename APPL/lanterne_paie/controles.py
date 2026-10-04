@@ -85,3 +85,14 @@ def formater_pourcentage(valeur: object) -> str:
         return f"{float(valeur) * 100:.2f}"
     except (TypeError, ValueError):
         return str(valeur)
+
+
+def formater_nombre_fr(valeur: object) -> str:
+    """Montant à deux décimales, virgule décimale (« 228,67 »), comme sur les AGI de l'association."""
+    texte = formater_nombre(valeur)
+    return texte.replace(".", ",") if texte and texte[0].isdigit() else texte
+
+
+def formater_pourcentage_fr(valeur: object) -> str:
+    """0.1064 -> « 10,64 »."""
+    return formater_pourcentage(valeur).replace(".", ",")

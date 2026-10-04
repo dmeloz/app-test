@@ -146,3 +146,56 @@ def reglages(dossier_principal: Path, tmp_path: Path):
     r.planning = str(detecter_planning(dossier_principal)[0])
     r.modele_agi = str(detecter_modele_agi(dossier_principal)[0])
     return r
+
+
+def creer_formulaire_agi(chemin: Path) -> Path:
+    """Formulaire AGI remplissable fictif, « déjà utilisé » : anciennes valeurs, annotation et signature dessinée."""
+    from pypdf import PdfReader, PdfWriter
+    from pypdf.annotations import FreeText
+    from pypdf.generic import NameObject, TextStringObject
+
+    brut = chemin.with_suffix(".brut.pdf")
+    c = canvas.Canvas(str(brut), pagesize=(595, 842))
+    c.setFont("Helvetica", 9)
+    c.drawString(42, 800, "Attestation de gain intermédiaire (formulaire fictif)")
+    form = c.acroForm
+    textes = {
+        "Nom_et_prénom": (42, 716, "Ancien Nom"), "N_AVS": (386, 716, "756.9217.0769.85"),
+        "NPA_localité_rue": (42, 687, ""), "Date_de_naissance": (366, 687, "01.01.1950"),
+        "Etat_civil": (454, 687, "Ancien état"), "mois": (67, 665, "mai"), "année": (182, 665, "2020"),
+        "Activité_exercée": (301, 665, ""), "8_salaire_contractuel_cotisation_AVS_par_mois": (234, 241, "999"),
+        "10_Salaire_de_base_CHF": (427, 182, ""), "10_Indemnité_vacances_%": (310, 146, ""),
+        "10_Indemnités_vacances_CHF": (427, 147, ""), "13_Caisse_de_compensation_AVS": (62, 400, ""),
+        "Lieu_date": (42, 169, "Ailleurs, le 01.01.2020"), "n_de_téléphone": (117, 146, ""),
+        "7_motif_refusé_possibilité1": (59, 332, ""), "16_motif_résilation_rapport_du_travail1": (253, 431, ""),
+        "adresse_complète_employeur": (297, 60, ""), "Signature": (321, 132, ""),
+    }
+    for jour in range(1, 32):
+        textes[f"1_{jour}"] = (43 + 16 * ((jour - 1) % 16), 564 - 30 * ((jour - 1) // 16), "8" if jour == 15 else "")
+    for nom, (x, y, valeur) in textes.items():
+        form.textfield(name=nom, x=x, y=y, width=60 if nom.startswith("1_") is False else 14, height=13,
+                       value=valeur, borderWidth=0, fontSize=8)
+    for nom, y in (("12_cotisations_LPP", 707), ("2_contrat_de_travail_écrit", 511)):
+        form.radio(name=nom, value="0", selected=True, x=65, y=y, size=9)
+        form.radio(name=nom, value="1", selected=False, x=116, y=y, size=9)
+    form.checkbox(name="15_L_activité_poursuit_non", x=66, y=483, size=9, checked=False)
+    # Ancienne signature incrustée dans le dessin de la page.
+    c.setStrokeColorRGB(0, 0, 0)
+    chemin_sig = c.beginPath()
+    chemin_sig.moveTo(330, 140)
+    chemin_sig.curveTo(340, 160, 350, 120, 365, 150)
+    c.drawPath(chemin_sig)
+    c.line(42, 100, 280, 100)  # trait du formulaire hors de la zone : doit rester
+    c.save()
+
+    redacteur = PdfWriter(clone_from=PdfReader(str(brut)))
+    redacteur.add_annotation(0, FreeText(text="9999 Ancienne-Ville, Rue Ancienne 1", rect=(45, 681, 329, 700)))
+    for page in redacteur.pages:
+        for ref in page["/Annots"]:
+            w = ref.get_object()
+            if w.get("/T") == "Nom_et_prénom":
+                w[NameObject("/DV")] = TextStringObject("Ancien Nom par défaut")
+    with chemin.open("wb") as f:
+        redacteur.write(f)
+    brut.unlink()
+    return chemin

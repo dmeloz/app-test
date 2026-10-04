@@ -31,7 +31,7 @@ def _texte_force(texte: str) -> str:
     return texte
 
 
-def generer_script(classeur: Path, ecritures: list[Ecriture], feuille_fiche: str, pdf: Path) -> str:
+def generer_script(classeur: Path, ecritures: list[Ecriture], feuille_fiche: str, pdf: Path | None) -> str:
     lignes = [
         "on ecrireDate(ws, adresse, a, m, j)",
         "\tset d to current date",
@@ -77,15 +77,14 @@ def generer_script(classeur: Path, ecritures: list[Ecriture], feuille_fiche: str
         lignes.append(
             f"\tset sortie to sortie & {chaine_applescript(cellule)} & tab & (my lire({fiche}, {chaine_applescript(cellule)})) & linefeed"
         )
-    lignes += [
-        "\tsave wb",
-        f"\tactivate object {fiche}",
-        f"\tset cheminPdf to (POSIX file {chaine_applescript(str(pdf))}) as string",
-        "\tsave as active sheet filename cheminPdf file format PDF file format",
-        "\tclose wb saving no",
-        "end tell",
-        "return sortie",
-    ]
+    lignes.append("\tsave wb")
+    if pdf is not None:
+        lignes += [
+            f"\tactivate object {fiche}",
+            f"\tset cheminPdf to (POSIX file {chaine_applescript(str(pdf))}) as string",
+            "\tsave as active sheet filename cheminPdf file format PDF file format",
+        ]
+    lignes += ["\tclose wb saving no", "end tell", "return sortie"]
     return "\n".join(lignes) + "\n"
 
 
@@ -136,6 +135,6 @@ def executer(script: str, delai: int = 180) -> str:
     return resultat.stdout
 
 
-def traiter(classeur: Path, ecritures: list[Ecriture], feuille_fiche: str, pdf: Path) -> ResultatExcel:
+def traiter(classeur: Path, ecritures: list[Ecriture], feuille_fiche: str, pdf: Path | None) -> ResultatExcel:
     sortie = executer(generer_script(classeur, ecritures, feuille_fiche, pdf))
     return lire_sortie(sortie)

@@ -10,10 +10,12 @@ from typing import Callable
 
 from pypdf import PdfReader
 
-from . import agi, courriel, excel_mac, integrite
+from . import agi, agi_formulaire, courriel, excel_mac, integrite
 from .classeur import Classeur, lire_classeur
-from .controles import formater_chf, formater_nombre, formater_pourcentage, normaliser
-from .dates_fr import jj_mm_aaaa, nom_dossier_mois
+from .controles import (
+    formater_chf, formater_nombre, formater_nombre_fr, formater_pourcentage, formater_pourcentage_fr, normaliser,
+)
+from .dates_fr import MOIS, jj_mm_aaaa, nom_dossier_mois
 from .fichiers import (
     DOSSIER_AGI, DOSSIER_FICHES, copier_sans_ecraser, dossier_mensuel, nom_agi, nom_fiche,
     suffixe_periode, sauvegarder, version_disponible,
@@ -25,7 +27,7 @@ from .planning import lire_planning
 from .presence import lire_presence
 from .reglages import Reglages
 from .validation import (
-    bloquants, champs_collaborateur, champs_seance, collaborateur_depuis, correspondances, date_seance,
+    bloquants, champs_agi, champs_collaborateur, champs_seance, collaborateur_depuis, correspondances, date_seance,
 )
 
 
@@ -109,6 +111,7 @@ def analyser(
     elif len(exactes) == 1:
         choisi = exactes[0]
     champs += champs_collaborateur(intervenant, exactes, proches, choisi)
+    champs += champs_agi(reglages.agi_activite)
     return Analyse(racine, fiche, intervenant, planning, classeur, choisi, champs, documents)
 
 
@@ -123,7 +126,7 @@ def generer(
     reglages: Reglages,
     confirmer: Callable[[str, list[str]], bool],
     choisir_version: Callable[[Path], bool],
-    executer_excel: Callable[[Path, list[Ecriture], str, Path], ResultatExcel] = excel_mac.traiter,
+    executer_excel: Callable[[Path, list[Ecriture], str, Path | None], ResultatExcel] = excel_mac.traiter,
 ) -> Resultat:
     """Génère la copie Excel, le PDF de la fiche de salaire et l'AGI.
 
@@ -142,6 +145,8 @@ def generer(
     if jour is None or numero is None:
         raise TraitementInterrompu("Date ou numéro de séance manquant.")
     racine = analyse.racine
+    # Relecture juste avant d'écrire : le classeur annuel a pu recevoir des prestations depuis l'analyse.
+    analyse.classeur = lire_classeur(analyse.classeur.chemin)
     champ = {c.cle: c for c in analyse.champs}
     ligne = analyse.collaborateur.ligne if analyse.collaborateur else None
     if champ["correspondance"].valeur_corrigee.strip().isdigit():
@@ -156,7 +161,13 @@ def generer(
     except PlanImpossible as exc:
         raise TraitementInterrompu(str(exc)) from exc
     a_confirmer = [e.description() for e in ecritures if e.a_confirmer]
-    if a_confirmer and not confirmer("Modifications dans la copie de travail", a_confirmer):
+    ecritures_annuel = [e for e in ecritures if e.feuille != analyse.classeur.feuilles.fiche]
+    if reglages.maj_classeur_annuel and ecritures_annuel:
+        a_confirmer.append(
+            f"→ Ces données seront aussi ajoutées au classeur annuel « {analyse.classeur.chemin.name} » "
+            "(sauvegardé avant toute modification)."
+        )
+    if a_confirmer and not confirmer("Modifications des fichiers Excel", a_confirmer):
         raise TraitementInterrompu("Génération annulée : modifications non confirmées.")
 
     periode = suffixe_periode(jour, _plusieurs_seances(analyse, jour))
@@ -202,11 +213,21 @@ def generer(
                 "La fiche de salaire ou le contrôle d'intégrité présente une erreur : AGI non généré (voir le rapport)."
             )
 
+        if reglages.maj_classeur_annuel and ecritures_annuel:
+            resultat.controles += mettre_a_jour_classeur_annuel(
+                analyse.classeur.chemin, sauvegarde / analyse.classeur.chemin.name, ecritures_annuel,
+                analyse.classeur.feuilles.fiche, executer_excel, rapport,
+            )
+
         if modele_agi and modele_agi.exists():
             signature = _signature(reglages)
-            valeurs = valeurs_agi(lu, collab, jour, reglages, analyse.classeur)
-            champs_agi = agi.remplir(modele_agi, cibles["agi"], valeurs, signature,
-                                     gabarit_valide=reglages.agi_gabarit_valide)
+            if agi_formulaire.est_formulaire(modele_agi):
+                donnees = donnees_formulaire_agi(lu, collab, jour, reglages, analyse)
+                champs_agi = agi_formulaire.remplir_formulaire(modele_agi, cibles["agi"], donnees, signature)
+            else:
+                valeurs = valeurs_agi(lu, collab, jour, reglages, analyse.classeur)
+                champs_agi = agi.remplir(modele_agi, cibles["agi"], valeurs, signature,
+                                         gabarit_valide=reglages.agi_gabarit_valide)
             resultat.pdf_agi = cibles["agi"]
             rapport.pdf_agi = str(cibles["agi"])
             for c in champs_agi:
@@ -222,6 +243,63 @@ def generer(
         raise
     resultat.chemin_rapport = rapport.enregistrer(racine, f"Rapport_{collab.nom}_{collab.prenom}_{periode}")
     return resultat
+
+
+def mettre_a_jour_classeur_annuel(
+    chemin: Path, sauvegarde: Path, ecritures: list[Ecriture], feuille_fiche: str,
+    executer_excel, rapport: Rapport,
+) -> list[Champ]:
+    """Ajoute collaborateur, date et prestation au classeur annuel, puis contrôle son intégrité."""
+    executer_excel(chemin, ecritures, feuille_fiche, None)
+    rapport.modifications_classeur_annuel = [e.description() for e in ecritures]
+    controles = integrite.verifier(sauvegarde, chemin, ecritures)
+    for c in controles:
+        c.cle = f"annuel_{c.cle}"
+        c.libelle = f"Classeur annuel : {c.libelle.lower()}"
+        if c.statut is Statut.ERREUR:
+            c.commentaire += f" Restaurer si besoin la sauvegarde : {sauvegarde}"
+    if any(c.statut is Statut.ERREUR for c in controles):
+        raise TraitementInterrompu(
+            f"Le contrôle du classeur annuel a échoué : restaurer la sauvegarde {sauvegarde} (voir le rapport)."
+        )
+    return controles
+
+
+def donnees_formulaire_agi(lu: ResultatExcel, collab: Collaborateur, jour: date, reglages: Reglages,
+                           analyse: "Analyse") -> dict:
+    """Données de l'AGI officiel remplissable, au format des AGI de l'association (aucun calcul)."""
+    v = lu.valeurs
+    champ = {c.cle: c.valeur for c in analyse.champs}
+    taux_lpp = v.get("D33")
+    lpp = isinstance(taux_lpp, float) and taux_lpp > 0
+    classeur = analyse.classeur
+    lieu = reglages.agi_lieu or analyse.fiche.club.title()
+    adresse_club = list(classeur.adresse_club[1:]) if classeur.adresse_club else []
+    premiere = classeur.raison_sociale
+    if adresse_club and adresse_club[0].lower().startswith("c/o"):
+        premiere = f"{premiere} {adresse_club.pop(0)}"
+    return {
+        "nom_prenom": f"{collab.nom} {collab.prenom}",
+        "no_avs": collab.no_avs,
+        "adresse": ", ".join(x for x in (collab.npa_localite, collab.adresse) if x),
+        "date_naissance": jj_mm_aaaa(collab.date_naissance),
+        "etat_civil": champ.get("etat_civil", ""),
+        "mois": MOIS[jour.month - 1],
+        "annee": str(jour.year),
+        "activite": champ.get("activite_agi") or reglages.agi_activite,
+        "calendrier": jour.day,
+        "heures": "8",
+        "salaire_contractuel": formater_nombre_fr(v.get("F27")),
+        "salaire_base": formater_nombre_fr(v.get("F25")),
+        "vacances_taux": formater_pourcentage_fr(v.get("D26")),
+        "vacances_montant": formater_nombre_fr(v.get("F26")),
+        "lpp": "/0" if lpp else "/1",
+        "assureur_lpp": reglages.agi_assureur_lpp if lpp else "",
+        "caisse_avs": reglages.agi_caisse_avs,
+        "lieu_date": f"{lieu}, le {jj_mm_aaaa(date.today())}" if lieu else "",
+        "telephone": reglages.agi_telephone_club,
+        "adresse_employeur": [premiere, *adresse_club] if premiere else [],
+    }
 
 
 def controler_fiche(lu: ResultatExcel, collab: Collaborateur, jour: date, pdf: Path) -> list[Champ]:

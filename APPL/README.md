@@ -31,7 +31,9 @@ Facultatif : `scripts/construire_app.command` crée une application `dist/Lanter
    - les **fichiers Excel** par année civile, d'après l'onglet Configuration, cellule B5. Les noms de fichiers ne
      sont pas codés en dur. Il y a un fichier par année civile, par exemple un pour 2026 et un pour 2027 ;
    - le **planning** : un PDF dont le nom contient « plan » ;
-   - le **modèle AGI** : dans `Modèles/`, un PDF dont le nom contient « gain » et « modèle ».
+   - le **modèle AGI** : dans `Modèles/`, un PDF dont le nom contient « gain » et « modèle ». Le formulaire
+     officiel **remplissable** (716.105 f) est choisi en priorité. Un AGI déjà rempli convient aussi : il est
+     entièrement vidé avant usage (champs, annotations, ancienne signature).
 
    Chaque fichier peut aussi être choisi à la main.
 2. **Mois** : liste de juin à juin. Les fiches de présence de `Fiches de salaire/<mois année>/` apparaissent
@@ -44,12 +46,14 @@ Facultatif : `scripts/construire_app.command` crée une application `dist/Lanter
    - **Erreur** : donnée obligatoire absente ou invalide (N° AVS, IBAN, date…), ou plusieurs correspondances.
      Pour les homonymes, saisir le numéro de ligne dans « Valeur corrigée ».
 
+      Le tableau contient aussi l'**activité exercée** pour l'AGI (« Animateur » ou « Animatrice », à adapter) et
+   l'**état civil**, facultatif.
+
    **Générer reste désactivé tant qu'une donnée obligatoire est en Erreur.**
 5. **Générer** :
    1. Sauvegarde horodatée dans `Sauvegardes/`.
    2. Liste des cellules qui seront écrites (collaborateur, date de séance, prestation), à **confirmer**.
-   3. Copie de travail `Fiche_salaire_NOM_Prenom_YYYY-MM.xlsx` : **le fichier Excel original n'est jamais
-      modifié**.
+   3. Copie de travail `Fiche_salaire_NOM_Prenom_YYYY-MM.xlsx`.
    4. Excel écrit uniquement les cellules de saisie, **calcule lui-même**, enregistre et exporte la zone
       d'impression de « 4. Fiches de salaire » en PDF.
    5. Contrôles :
@@ -60,12 +64,19 @@ Facultatif : `scripts/construire_app.command` crée une application `dist/Lanter
       - les onglets, les formules, les listes déroulantes et les mises en forme conditionnelles sont tous
         conservés ;
       - seules les cellules prévues ont changé.
-   6. AGI remplie avec les montants de la fiche, sans aucun recalcul, puis signée et classée dans
-      `AGI/<mois année>/`.
-   7. Rapport HTML et JSON dans `Rapports/`, et journal dans `Rapports/journal.log`.
+   6. **Classeur annuel** : les mêmes données (collaborateur, date de séance, prestation) y sont ajoutées,
+      pour la déclaration AVS et les certificats de salaire. Le classeur est relu juste avant, donc une même
+      prestation n'est jamais ajoutée deux fois. Son intégrité est contrôlée par comparaison avec la sauvegarde.
+      Cette option peut être désactivée dans les réglages.
+   7. AGI remplie champ par champ, avec les montants de la fiche sans aucun recalcul et au format de
+      l'association (mois en lettres, virgule décimale, « Contrat à durée déterminée d'un jour », caisse
+      cantonale vaudoise…). Elle est signée et classée dans `AGI/<mois année>/`.
+   8. Rapport HTML et JSON dans `Rapports/`, et journal dans `Rapports/journal.log`.
 6. **Préparer l'e-mail** : ouvre un brouillon Outlook dans Chrome et affiche les PDF dans le Finder, à glisser
    dans le message. Statut affiché : *E-mail préparé – en attente d'envoi*.
 7. **Ouvrir le dossier** / **Afficher le rapport**.
+
+Fermez le classeur annuel dans Excel avant de générer.
 
 Si un mois compte deux séances (par exemple novembre 2026 à Chexbres), les fichiers portent la date complète :
 `…_2026-11-07.pdf`, `…_2026-11-28.pdf`. Si un fichier existe déjà, l'application propose une version
@@ -75,10 +86,16 @@ alternative (`_v2`). Elle ne remplace ni ne supprime jamais un fichier.
 
 - **Signature** : image PNG/JPG, ou signature dessinée dans l'application. La signature numérique certifiée
   est prévue pour une version future.
-- **Réponses de l'association pour l'AGI** : lieu, téléphone du club, caisse AVS, assureur LPP, contrat
-  écrit. Une valeur laissée vide conserve la consigne du modèle et la marque « À vérifier ».
-- **Aperçu avec des données fictives** : à contrôler une fois. Cochez ensuite « J'ai contrôlé l'aperçu… » pour
-  que les zones de l'AGI passent de « À vérifier » à « Validé ».
+- **Réponses de l'association pour l'AGI** :
+  - lieu (vide = nom du club, par exemple « Chexbres ») ;
+  - téléphone figurant sur l'AGI : **à saisir**, il n'est pas pré-rempli ;
+  - caisse AVS (par défaut : Caisse Cantonale Vaudoise de Compensation) ;
+  - assureur LPP.
+
+  Les réponses fixes de l'association (questions 2 à 7, 11, 14 à 17) sont dans
+  `ressources/agi_formulaire.json`.
+- **Aperçu avec des données fictives**.
+- **Classeur annuel** : activer ou désactiver l'ajout des prestations.
 - **E-mail** : compte Outlook.com ou Microsoft 365, objet et texte du message.
 
 ## Règles respectées
@@ -88,9 +105,10 @@ alternative (`_v2`). Elle ne remplace ni ne supprime jamais un fichier.
 - Aucun montant n'est calculé par l'application : Excel calcule, l'application lit et recopie. Les montants
   sont affichés en CHF avec deux décimales.
 - PDF natifs uniquement : un PDF scanné est signalé, sans reconnaissance de caractères (OCR).
-- AGI : le modèle n'a pas de champs de formulaire. Chaque zone est repérée par un texte présent dans le modèle
-  (`ressources/agi_gabarit.json`). Si ce texte est introuvable, la zone est marquée « À vérifier » et rien
-  n'est écrit.
+- AGI : l'application remplit les **champs du formulaire officiel**. Un champ introuvable est marqué « À vérifier »
+  et rien n'est écrit à sa place. Aucune donnée d'un AGI précédent ne subsiste dans le fichier produit, même
+  invisible. Un modèle aplati, sans champs, reste pris en charge : chaque zone est alors repérée par un texte du
+  modèle (`ressources/agi_gabarit.json`).
 
 ## Tests
 
