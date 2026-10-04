@@ -1,0 +1,9 @@
+# Aucun document réel (données salariales, AVS, IBAN) ne doit être versionné.
+# Seuls les fichiers synthétiques placés dans tests/fixtures/ sont autorisés.
+*.xlsx
+*.xlsm
+*.xls
+*.pdf
+*.png
+*.jpg
+!tests/fixtures/**
