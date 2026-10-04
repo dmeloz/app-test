@@ -1,6 +1,6 @@
 # Analyse des fichiers réels — préparation des salaires La Lanterne Magique
 
-Date : 2026-10-04 · Statut : **analyse avant code, en attente de validation de Sarah Moumin**
+Date : 2026-10-04 · Statut : **analyse validée par Sarah Moumin ; application v0.1 développée (voir README)**
 
 Fichiers examinés (lecture seule, aucun original modifié, aucun fichier réel versionné) :
 
@@ -10,7 +10,9 @@ Fichiers examinés (lecture seule, aucun original modifié, aucun fichier réel 
 | `PLANNIG 2026-2027_La Lanterne Magique-…_20260714 (1).pdf` | Planning annuel, PDF natif FileMaker, 7 pages |
 | `Attestation de gain intermédiaire - modèle.pdf` | Modèle AGI 716.105 f, 1 page A4 paysage |
 
-Non fourni : **la fiche de présence mensuelle** (`Chexbres_1 Fiche de présence.xlsx`). Sa structure reste à analyser.
+| `Chexbres_1 Fiche de présence.pdf` | Fiche de présence, PDF natif FileMaker, 1 page (fournie le 2026-10-04) |
+
+La fiche de présence fournie est un **PDF** (et non un Excel) : les deux formats sont pris en charge.
 
 Légende : **[Fait vérifié]** observé dans le fichier · **[Hypothèse]** à confirmer · **[Décision]** à valider.
 
@@ -156,48 +158,66 @@ Voir décision D3.
 
 ---
 
-## 4. Décisions à valider
+## 4. Fiche de présence [Fait vérifié]
 
-| # | Question | Proposition |
+- PDF natif, colonne de libellés à gauche (x ≈ 108 pt), valeurs à droite (x ≥ 312 pt).
+- En-tête « CLUB CONFIRMATION DE PRÉSENCE », puis Séance (jour, date JJ.MM.AAAA, heure), Programme, Cinéma.
+- Rubrique Animation : une ligne par fonction (Savant·e, Naïf·ve, Artiste) avec « Prénom Nom, adresse,
+  NPA localité », puis téléphones et e-mail sur la ligne suivante. **Pas de N° AVS** : l'identification se fait
+  par « Prénom Nom », le N° AVS est repris du classeur.
+- « Le cachet de l'artiste est de CHF 319.– » : comparé au tarif indépendant de Configuration (C15).
+- Constats sur le fichier d'octobre 2026 : un téléphone du classeur a perdu son 0 initial (enregistré comme
+  nombre) ; l'artiste n'est pas encore dans le classeur 2026 (nouveau collaborateur, statut indépendant).
+
+## 5. Décisions
+
+| # | Question | Décision |
 |---|---|---|
-| D1 | Le classeur est en année civile (séances 4-9 de 2025-26 + 1-3 de 2026-27). Octobre à décembre 2026 s'inscrivent dans ce classeur (B30:B32) ; janvier à juin 2027 dans le classeur de l'année civile 2027 ? | Oui. L'application choisit le classeur selon `Configuration!B5` et alerte si la date de séance n'est pas dans `B24:B35`. |
-| D2 | Fiche de salaire par séance (structure Excel) mais nom de fichier par mois `YYYY-MM`. | Une fiche par séance : `Fiche_salaire_NOM_Prenom_YYYY-MM-JJ.pdf` si le mois a plusieurs séances, sinon `YYYY-MM`. |
-| D3 | AGI sans champs. | Fournir le **formulaire officiel remplissable** 716.105 (arbeit.swiss), ou valider une **calibration unique** des zones par vous-même dans l'application (vous cliquez chaque zone une fois ; positions enregistrées, jamais devinées). |
-| D4 | La date de séance n'existe pas encore dans `Configuration!B30:B32`. Écrire la date de séance dans Configuration ? | Oui, avec confirmation explicite (modification de structure), en lisant la date dans le planning PDF. |
-| D5 | Ajout d'un collaborateur absent : écrire dans la première ligne vide de A6:M40 (sans toucher la colonne C formule). | Oui, avec confirmation. Plus de 35 collaborateurs → Erreur bloquante. |
-| D6 | E-mail : Outlook Web dans Chrome ne permet pas de joindre un fichier par lien. | Brouillon ouvert dans Chrome (destinataire, objet, texte) + dossier des PDF ouvert dans le Finder pour glisser les pièces jointes. |
+| D1 | Classeurs en année civile | **Validé par Sarah** : saison octobre → juin classée par mois ; un classeur Excel par année civile (2026, 2027). L'application choisit le classeur selon `Configuration!B5` et l'année de la séance. |
+| D2 | Fiche par séance / nom par mois | Une fiche par séance ; suffixe `YYYY-MM`, ou `YYYY-MM-JJ` si le club a plusieurs séances dans le mois. *Modifiable sur demande.* |
+| D3 | AGI sans champs | **Précisé par Sarah** : modèle officiel pré-rempli par l'association. Zones repérées par les textes du modèle ; les consignes (calque rose/rouge ajouté par l'association) sont retirées là où une valeur est écrite ; les réponses pré-cochées sont conservées. Aperçu fictif à contrôler une fois. |
+| D4 | Date de séance absente de Configuration | Inscrite dans la copie de travail (B30:B32 pour les séances 1-3, B24:B29 pour 4-9), après confirmation. Date différente déjà présente = Erreur. |
+| D5 | Nouveau collaborateur | Ajouté dans la 1re ligne libre (6 à 40) de la copie, colonne C (formule) jamais écrite, après confirmation. |
+| D6 | E-mail | Brouillon Outlook Web dans Chrome + pièces jointes montrées dans le Finder. |
+| D7 | Excel installé | **Confirmé par Sarah.** |
+| D8 | Classeur maître | Le classeur original n'est **jamais** modifié : les ajouts vont dans la copie `Fiche_salaire_…xlsx` (consigne « créer une copie de travail »). *À confirmer : souhaitez-vous que le classeur annuel cumule aussi les prestations (pour la déclaration AVS et les certificats) ?* |
+| D9 | Indépendant·e | Le classeur ne produit pas de fiche de salaire pour un statut « Indépendant » (contrôle D8) : statut Erreur, génération bloquée. |
 
----
+Protection : toutes les feuilles sont protégées ; les cellules écrites par l'application sont toutes
+déverrouillées [Fait vérifié]. La protection n'est jamais retirée.
 
-## 5. Architecture proposée [Décision]
+## 6. Architecture retenue
 
-- **Swift + SwiftUI**, application macOS native, 100 % locale, aucun appel réseau (pas de dépendance réseau à
-  l'exécution ; le seul lien ouvert est le brouillon Outlook Web, sans pièce jointe ni donnée salariale autre que
-  le texte du message que vous relisez).
-- Lecture `.xlsx` : bibliothèque de lecture seule (CoreXLSX) sur une **copie** du fichier.
-- Écriture, recalcul, export PDF : **Microsoft Excel via AppleScript** (ouverture sans mise à jour des liaisons,
-  écriture des seules cellules de saisie, `save`, export de la zone d'impression de `4. Fiches de salaire`).
-- Planning : PDFKit (extraction texte). AGI : PDFKit (champs AcroForm si disponibles, sinon zones calibrées).
-- Sauvegarde horodatée de tout fichier avant traitement ; aucun écrasement : suffixe `_v2`, `_v3`.
-- Journal et rapport en JSON + HTML lisible dans `Rapports/`.
+- **Python 3.11+ et PySide6 (Qt)** : interface macOS native en français. Choisi à la place de Swift pour pouvoir
+  exécuter les tests de toute la logique dans l'environnement de développement (le compilateur Swift n'y est
+  pas disponible).
+- Lecture : `openpyxl` (lecture seule), `pdfminer.six` (texte positionné des PDF natifs).
+- Écriture, recalcul, export PDF : **Microsoft Excel via AppleScript** (`osascript`), sans mise à jour des
+  liaisons externes.
+- AGI : `pypdf` (retrait des consignes) et `reportlab` (valeurs, cases, signature).
+- Après chaque génération, **contrôle d'intégrité** : onglets, formules (1 495 dans le classeur réel), listes
+  déroulantes et mises en forme conditionnelles comparés entre original et copie ; seules les cellules
+  prévues peuvent différer.
 
-## 6. Stratégie de test
+## 7. Stratégie de test (mise en œuvre)
 
-1. **Fixtures synthétiques** générées à partir de la structure réelle (mêmes onglets, formules, extensions)
-   avec des personnes fictives ; aucun fichier réel dans le dépôt (`APPL/.gitignore`).
+1. **Fixtures fictives** : `tests/fixtures/classeur_fictif_2026.xlsx` (structure et formules du classeur réel,
+   personnes fictives, liens externes et métadonnées retirés ; absence de données réelles vérifiée
+   automatiquement) et PDF de planning, de fiche de présence et d'AGI générés par les tests.
 2. **Tests unitaires** (Swift, sans Excel) : extraction du planning, identification par nom/prénom/AVS
    (0, 1, plusieurs correspondances), statuts Validé/À vérifier/Erreur, blocage sur Erreur obligatoire,
    nommage, dossiers mensuels, versionnement anti-écrasement.
 3. **Test d'intégrité du classeur** : comparaison formule par formule, onglets, noms définis, validations et
    mises en forme conditionnelles (XML `extLst`) **avant/après** écriture. Toute différence hors cellules de
    saisie attendues = échec.
-4. **Tests d'intégration sur le Mac** (Excel installé) : écriture → recalcul → contrôle D8 vide → contrôle
-   C21 et E13 → export PDF → PDF non vide d'une page.
+4. **Chaîne complète** : sous Linux avec LibreOffice à la place d'Excel (mêmes écritures, formules réelles
+   recalculées : D8 vide, montants numériques, nom et date affichés, PDF d'une page — vérifié sur les fichiers
+   réels et sur le classeur fictif) ;
+   sur le Mac avec Excel via `LANTERNE_TEST_EXCEL=1` sur une copie temporaire.
 5. **Recette** avec Sarah sur une copie, un collaborateur fictif, puis un réel.
 
-## 7. Éléments encore nécessaires
+## 8. Éléments encore nécessaires
 
-- Une fiche de présence mensuelle (anonymisée si possible).
-- Réponses aux décisions D1 à D6.
-- Le formulaire AGI remplissable si disponible.
-- Une confirmation que Microsoft Excel (version Mac) est installé.
+- Recette sur le Mac : premier lancement avec Excel (autorisations macOS), contrôle de l'aperçu AGI.
+- Réponses aux points D2 et D8.
+- Réponses de l'association pour l'AGI (caisse AVS, téléphone du club, contrat écrit, assureur LPP).

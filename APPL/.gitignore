@@ -7,3 +7,12 @@
 *.png
 *.jpg
 !tests/fixtures/**
+
+# Environnement et artefacts locaux
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+build/
+dist/
+*.spec
